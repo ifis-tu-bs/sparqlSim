@@ -20,7 +20,7 @@ Switch to the project directory and execute:
 3. make
 ```
 
-We build our software using the latest gcc compiler. 
+We build our software using the latest gcc compiler (tested on gcc version 7.3.0). 
 
 ## Using the software
 ```
