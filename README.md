@@ -52,3 +52,10 @@ In cases 2. and 3., the program derives filenames from given ones (2. it is 'inl
 
 
 Please note that upon restart of the program, existing output files will be rewritten. So please backup them when necessary before running the next queries.
+
+
+### Thanks
+
+Thanks to http://bitmagic.io for providing compressed bit-vector containers.
+
+
