@@ -1,0 +1,149 @@
+How to build BitMagic library:
+
+BM is small software package and you probably can just take the
+sources and put it into your project directly. All library sources are in src
+directory.
+
+However if you want to use our makefiles you need to follow the next simple
+instructions:
+
+
+Unix:
+-----
+
+1. Traditional (in-place build)
+- Apply environment variables by runing bmenv.sh :
+$ . bmenv.sh
+
+- use GNU make (gmake) to build installation.
+
+$gmake rebuild
+
+or (DEBUG version)
+ 
+$gmake DEBUG=YES rebuild
+
+The default compiler on Unix and CygWin is g++.
+If you want to change the default you can do that in makefile.in
+(should be pretty easy to do)
+
+2. CMake based build
+Project now comes with a set of makefiles for cmake, you can just build it or generate project files for any cmake-supported
+environment.
+
+
+Windows:
+--------
+
+If you use cygwin installation please follow general Unix recommendations.
+MSVC - solution and projects are available via CMAKE generation
+
+MacOS
+---------
+
+XCODE - project files are available via CMAKE generation
+
+=================================================================================
+
+API documentation and examples:
+http://www.bitmagic.io/apis.html
+
+
+Fine tuning and optimizations:
+------------------------------
+
+All BM fine tuning parameters are controlled by the preprocessor defines.
+
+=================================================================================
+
+BM library supports CXX-11. Move semantics, noexept, etc.
+use
+#define BM_NO_CXX11
+to explicitly disable use of CXX11 features for your build
+
+=================================================================================
+
+BM library includes some code optimized for 64-bit systems. This optimization 
+gets applied automatically.
+
+BM library contains hand tuned code (intrinsics) for SIMD extensions SSE2, SSE4.2, AVX2.
+
+To turn on SSE2 optimization #define BMSSE2OPT in your build environment.
+To use SSE4.2  #define BMSSE42OPT (this enables hardware popcount via intrinsics).
+SSE42 optimization automatically assumes SSE2 as a subset of SSE4.2. 
+(you don’t need to use both BMSSE2OPT and BMSSE42OPT). 
+You will need compiler supporting Intel SIMD intrinsics (MSVC, GCC - are ok).
+
+To turn on AVX2 - #define BMAVX2OPT
+This will automatically enable AVX2 256-bit SIMD, popcount (SSE4.2) and other 
+compatible harware instructions.
+
+BM library does NOT support multiple code paths and runtime CPU identification.
+You have to build specifically for your target system or use default portable
+build.
+
+To correctly build for the target SIMD instruction set - please set correct 
+code generation flags for the build environment.
+
+BitMagic examples and tests can be build with GCC using cmd-line settings: 
+
+make BMOPTFLAGS=-DBMAVX2OPT rebuild
+or
+make BMOPTFLAGS=-DBMSSE42OPT rebuild
+
+It automatically applies the right set of compiler (GCC) flags for the target 
+build.
+
+=================================================================================
+
+BM library uses ‘register’ keyword, but it is disabled now because in C++11 
+it is obsolete. 
+Use 
+#define BMREGISTER register
+to turn it on.
+
+
+=================================================================================
+
+BM library supports "restrict" keyword, some compilers 
+(for example Intel C++ for Itanium) generate better
+code (out of order load-stores) when restrict keyword is helping. This option is 
+turned OFF by default since most of the C++ compilers does not support it. 
+To turn it ON please #define BM_HASRESTRICT in your project. Some compilers
+use "__restrict" keyword for this purpose. To correct it define BMRESTRICT macro 
+to correct keyword. 
+
+=================================================================================
+
+
+Bitcounting optimization can be turned ON by defining BMCOUNTOPT.
+Please note this optimization is not completely thread safe and in general may not
+be needed on systems with SSE4.2 and up with available harware popcnt and vectrization. 
+bvector<> template keeps mutable variable inside it and update it 
+when it count() function is called. It creates a certain chance that this
+function will be called from multiple threads and conflict/crash on updating this 
+variable.
+
+If BMCOUNTOPT is not defined (default) BM library should be considered thread
+safe for all reads - all "const" on functions, methods, parameters are honored. 
+
+=================================================================================
+
+If you want to use BM library in STL-free project you need to define
+BM_NO_STL variable. It will disable inclusion of certain headers and also 
+will make bvector iterators incompatible with STL algorithms 
+(which you said you are not using anyway).
+
+This rule only applies to the core bvector methods. Auxiliary algorithms may use 
+STL.
+
+=================================================================================
+
+
+
+Thank you for using BitMagic library!
+	e-mail: info@bitmagic.io
+	WEB site: http://bitmagic.io
+
+
+

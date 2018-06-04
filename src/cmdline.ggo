@@ -1,0 +1,76 @@
+package "StrongSim"
+version "0.1"
+purpose "This tool computes strong simulating matches in a given database based on a given pattern."
+usage "strongsim [OPTIONS] [DB1] [DB2] ... [DBk]"
+description "Compute strong simulating matches in a given database."
+
+args "-u"
+
+section "Input options"
+
+option "delim" -
+"specifies delimiter in triples"
+values="tab","space" default="space"
+optional
+
+section "Query options"
+
+option "input" f
+"specifies a query input file"
+multiple string typestr="FILENAME" optional
+
+option "exec" e
+"specifies a query as string"
+multiple string typestr="SPARQL QUERY" optional
+
+option "shell" -
+"whether or not to enter interactive mode after reading/executing"
+flag off
+
+section "Computation options"
+
+option "iterations" n
+"specifies number of iterations"
+int typestr="N" default="1" optional
+
+option "random" r
+"turns random order on"
+flag off
+
+option "mindb" -
+"replaces the db by a minimal version"
+flag off
+
+option "debug" -
+"turns on debug mode"
+flag off
+
+option "icde2019" -
+"turns evaluation mode of ICDE 2019 on"
+flag off
+
+option "maetal" -
+"turns evaluation against Ma et al. on"
+flag off
+
+section "Output options"
+
+option "pruning" p
+"enables output of the pruning files"
+flag off
+
+option "profile" -
+"enables query profiling"
+flag off
+
+option "csv" -
+"enables csv output of statistics"
+flag off
+
+option "virtuoso" -
+"produces files relevant for experiments with Virtuoso"
+flag off
+
+option "verbose" v
+"specifies verbose output"
+flag off
