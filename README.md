@@ -1,10 +1,15 @@
-# SimPrune
+# sparqlSim
 
 
 ## Getting Started
 First make sure that you have the following packages installed:
 ```
 bison flex gengetopt libboost-dev libboost-all-dev
+```
+
+Make sure the following programs are installed:
+```
+autoconf
 ```
 
 ## Building the project
@@ -19,14 +24,14 @@ We build our software using the latest gcc compiler.
 
 ## Using the software
 ```
-./strongsim --shell DATABASEFILE1 DATABASEFILE2 ... DATABASEFILEk
+./sparqlSim --shell DATABASEFILE1 DATABASEFILE2 ... DATABASEFILEk
 ... loads one graph from all database files and starts interactive console
     (may use regular expressions in filenames)
 ```
 ## Important parameters for evaluation purposes 
 Call the program as follows:
 ```	
-./strongsim --icde2019 DATABASEFILE1 .. DATABASEFILEk -f QUERYFILE1 .. -f QUERYFILEn
+./sparqlSim --icde2019 DATABASEFILE1 .. DATABASEFILEk -f QUERYFILE1 .. -f QUERYFILEn
 ```
 Here, for every query file 'filename.sparql' and every query in that file, the pruning is written to 'filename_#.reduced.nt' where # is the line number the query occurs in the file. Furthermore, 'filename_#.csv' contains statistics for that query file (1 line per query). Also, virtuoso scripts are generated; (1) 'filename.virtuoso.profile.script' and (2) 'filename_#.virtuoso.script'.
 
