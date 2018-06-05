@@ -1,6 +1,6 @@
-bin_PROGRAMS = strongsim
+bin_PROGRAMS = sparqlsim
 
-strongsim_SOURCES = cmdline.c cmdline.h \
+sparqlsim_SOURCES = cmdline.c cmdline.h \
 					cmdline-parser.yy cmdline-lexer.ll cmdline-parser.h \
 					graph-parser.yy graph-lexer.ll \
 					utils.h utils.cc \
@@ -17,7 +17,7 @@ strongsim_SOURCES = cmdline.c cmdline.h \
 					reporter.h \
 					main.cc
 
-strongsim_CPPFLAGS = -I../resources/bm/src
+sparqlsim_CPPFLAGS = -I../resources/bm/src
 
 BUILT_SOURCES = cmdline.c
 EXTRA_DIST =
