@@ -29,11 +29,24 @@ We build our software using the latest gcc compiler (tested on gcc version 7.3.0
     (may use regular expressions in filenames)
 ```
 ## Important parameters for evaluation purposes 
+
+### Repeat ICDE 2019 Experiments
 Call the program as follows:
 ```	
 ./sparqlSim --icde2019 DATABASEFILE1 .. DATABASEFILEk -f QUERYFILE1 .. -f QUERYFILEn
 ```
 Here, for every query file 'filename.sparql' and every query in that file, the pruning is written to 'filename_#.reduced.nt' where # is the line number the query occurs in the file. Furthermore, 'filename_#.csv' contains statistics for that query file (1 line per query). Also, virtuoso scripts are generated; (1) 'filename.virtuoso.profile.script' and (2) 'filename_#.virtuoso.script'.
+
+### Other Dual Simulation Algorithms
+Alongside our own solution we have implemented the HHK algorithm by Henzinger et al. (FOCS 1995) as well as the algorithm presented by Ma et al. (ACM TODS 2014). For evaluation of SPARQL queries by Ma et al.'s algorithm call
+```
+./sparqlSim --maetal DATABASEFILE1 ..DATABASEFILEk -f QUERFILE1 .. -f QUERYFILEn
+```
+For evaluation under HHK call
+```	
+./sparqlSim --hhk DATABASEFILE1 .. DATABASEFILEk -f QUERYFILE1 .. -f QUERYFILEn
+```
+Please note that the for both algorithms the queries are assumed to be basic graph patterns. Hence, if optional patterns and further operators are used, then our own algorithm yields different results, because we process the SPARQL operators.
 
 ## Interactive console
 
