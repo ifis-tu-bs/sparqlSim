@@ -92,6 +92,14 @@ public:
 		}
 	}
 
+	bm::bvector<> rowBV(unsigned r) {
+		bm::bvector<> result(_max);
+		for (unsigned int i : _rows[r]) {
+			result.set_bit(i);
+		}
+		return result;
+	}
+
 	unsigned char *serializedColV(unsigned int &size) {
 		BM_DECLARE_TEMP_BLOCK(tb);
 		bm::bvector<>::statistics st;
@@ -151,6 +159,10 @@ public:
 		_max = max;
 	}
 
+	const unsigned intcount() const {
+		return _count;
+	}
+
 	double count() const {
 		return (double) _count;
 	}
@@ -170,8 +182,44 @@ public:
 		return false;
 	}
 
+	bm::bvector<> multiplyMe(const bm::bvector<> &v) {
+		bm::bvector<> result(_max);
+		result.reset();
+		for (auto &r : _rows) {
+			if (v.test(r.first)) {
+				for (unsigned i : r.second) {
+					result.set(i);
+				}
+			}
+		}
+		return result;
+	}
+
+	static void print(const bm::bvector<> &v) {
+		cerr << "size: " << v.size() << endl;
+		cerr << "[";
+		unsigned c = v.get_first();
+		if (c || v.test(0)) {
+			do {
+				cerr << " " << c;
+			} while (c = v.get_next(c));
+		}
+		cerr << " ]" << endl;
+	}
+
+	unsigned sizeOf() {
+		unsigned size = sizeof(unordered_map<unsigned,Row>);
+		for (auto &e : _rows) {
+			size += sizeof(unsigned) + 
+					sizeof(vector<unsigned>) +
+					e.second.size()*sizeof(unsigned);
+		}
+		return size + sizeof(_colV) + sizeof(SMatrix);
+	}
+
 private:
 	// rows of the matrix
+	// map<unsigned, Row> .. Row=vector<unsigned>
 	Map _rows;
 
 	unsigned int _rowCount = 0;

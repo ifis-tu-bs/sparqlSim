@@ -15,6 +15,7 @@ Node::Node(const string &name) :
 }
 
 Node::~Node() {
+	_name = "";
 	_name.clear();
 }
 

@@ -5,8 +5,10 @@
 #include "edge.h"
 #include "label.h"
 #include "node.h"
+#include "smatrix.h"
 
 #include <cstdlib>
+#include <algorithm>
 
 using namespace std;
 
@@ -80,41 +82,17 @@ QGSimulation::~QGSimulation() {
 	}
 }
 
-// void QGSimulation::prefixpoint() {
-// 	for (auto &i: _order) {
-// 		// if current equation is already stable, continue
-
-// 		bm::bvector<> &x = _sourceV[i]->getVal();
-// 		bm::bvector<> &y = _targetV[i]->getVal();
-
-// 		bm::bvector<> Y(max());
-// 		unsigned int r = x.get_first(); // position of first 1
-// 		if (r==0 && !x.test(0)) {
-// 			_targetV[i]->null(); // if x is 0, then y is
-// 			_stable[i] = true;
-// 			if (_targetV[i]->isMandatory()) {
-// 				_empty = true;
-// 			}
-// 			else {
-// 				continue;
-// 			}
-// 		} else {
-// 			do {
-// 				_operand[i]->rowbv(y, Y, r);
-// 			} while ((r=x.get_next(r)) != 0);
-// 		}
-
-// 		_targetV[i]->update(Y);
-
-// 		if (_targetV[i]->isEmpty() && 
-// 			_targetV[i]->isMandatory()) {
-// 			_empty = true;
-// 		}
-// 	}
-// }
-
 unsigned int QGSimulation::fixpoint(const unsigned swtch) {
 	bm::bvector<> Y(max());
+
+	// unsigned m = _mandatory.get_first();
+	// do {
+	// 	cout << " " << m;
+	// } while (m = _mandatory.get_next(m));
+	// cout << endl;
+	// cout << order() << endl;
+	// string w;
+	// cin >> w;
 
 	unsigned int iter = 0;
 	unsigned int r;
@@ -130,9 +108,14 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch) {
 	do {
 		iter++;
 		for (auto &i: _order) {
+			// cout << "try " << i << endl;
+			// cout << _stable[i] << " " << _mandatory[i] << " " << mastersStable() << endl;
 			// if current equation is already stable, continue
-			if (_stable[i])
+			// string w;
+			// cin >> w;
+			if (_stable[i] || !(_mandatory[i] || mastersStable()))
 				continue;
+			// cout << "pass" << endl;
 			// get source variable (including an update)
 			// y <= x \times A
 			bm::bvector<> &x = _sourceV[i]->getVal();
@@ -181,21 +164,6 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch) {
 				return iter;
 			}
 		}
-
-		// unsigned min, minv, tmp;
-		// for (unsigned int opt = 0; opt < _order.size(); ++opt) {
-		// 	min = opt;
-		// 	tmp = _order[min];
-		// 	minv = _sourceV[min]->count();
-		// 	for (unsigned int opt2 = opt+1; opt2 < _order.size(); ++opt2) {
-		// 		if (minv > _sourceV[_order[opt2]]->count()) {
-		// 			min = opt2;
-		// 			minv = _sourceV[min]->count();
-		// 		}
-		// 	}
-		// 	_order[opt] = _order[min];
-		// 	_order[min] = tmp;
-		// }
 	} while (!stable());
 
 	bool changes = false; // any changes??
@@ -234,7 +202,7 @@ unsigned int QGSimulation::fixpointWithProfile(const unsigned swtch) {
 		profile();
 		for (auto &i: _order) {
 			// if current equation is already stable, continue
-			if (_stable[i])
+			if (_stable[i] || !(_mandatory[i] || mastersStable()))
 				continue;
 			// get source variable (including an update)
 			// y <= x \times A
@@ -315,7 +283,7 @@ unsigned int QGSimulation::MaEtAl() {
 						x.clear_bit(r);
 						changes = true;
 					}
-				} while (r  = x.get_next(r));
+				} while (r = x.get_next(r));
 			}
 
 			if (!x.any()) {
@@ -332,6 +300,61 @@ unsigned int QGSimulation::MaEtAl() {
 	return iter;
 }
 
+unsigned int QGSimulation::HHK() {
+
+	/// 0. Initialization
+	unsigned iter = 0;
+
+	// cerr << "HHK IS NOT IMPLEMENTED, YET" << endl;
+	// return 0;
+
+	/// 1. Initialization of remove vectors
+	for (Variable *v : _vars) {
+		// cerr << "init remove of " << v->getId() << endl;
+		v->initRemoves();
+	}
+
+
+	bool changes = true;
+	/// 2. Iteration
+	while (changes) {
+		++iter;
+		changes = false;
+
+		for (unsigned i : _order) {
+			SMatrix *s = _operand[i]->matrix_p(_dirs[i]);
+
+			// SMatrix::print(_targetV[i]->val());
+			// SMatrix::print(_sourceV[i]->remove(s));
+			bm::bvector<> removals = _targetV[i]->val() & _sourceV[i]->remove(s);
+			if (removals.none())
+				continue;
+			// cerr << "HHK: there are removals" << endl;
+			_targetV[i]->minus(removals);
+			// cerr << "updated target value" << endl;
+
+			/// Update Remove Set of Target
+			for (unsigned eq : _targetV[i]->equations()) {
+				if (eq == i)
+					continue;
+				SMatrix *seq = _operand[eq]->matrix_p(_dirs[eq]);
+				bm::bvector<> wprime = seq->multiplyMe(removals);
+				wprime -= seq->multiplyMe(_targetV[i]->val());
+
+				if (wprime.any()) {
+					changes = true;
+					_targetV[i]->addRemoveSet(seq, wprime);
+				}
+			}
+
+			_sourceV[i]->clearRemoveSet(s);
+		}
+
+	}
+
+	return iter;
+}
+
 bool QGSimulation::stable() const {
 	if (_empty)
 		return true;
@@ -342,6 +365,17 @@ bool QGSimulation::stable() const {
 		}
 	}
 	// }
+	return true;
+}
+
+bool QGSimulation::mastersStable() const {
+	unsigned m = _mandatory.get_first();
+	if (!m && !_mandatory[0])
+		return true;
+	do {
+		if (!_stable[m])
+			return false;
+	} while (m = _mandatory.get_next(m));
 	return true;
 }
 
@@ -498,7 +532,7 @@ void QGSimulation::pop() {
 				m.second->setMandatory(true);
 			}
 			
-			if (!args_info.random_flag) {
+			if (!args_info.random_flag && !args_info.permute_flag) {
 				vector<double> Vs, Vs2;
 				for (unsigned int i = 0; i < _sourceV.size(); ++i) {
 					Vs.push_back(_dirs[i] ? _operand[i]->a().count() : _operand[i]->aT().count());//) * // y <=
@@ -509,15 +543,15 @@ void QGSimulation::pop() {
 				for (unsigned int i = 0; i < _order.size(); ++i) {
 					min = -1;
 					for (unsigned int j = 0; j < _order.size(); ++j) {
-						if (_scheduled[j] || !_sourceV[j]->isSchedulable())
+						if (!schedulable(j, true))
 							continue;
 						if (min < 0) {
 							min = j;
 							continue;
 						}
 						if (Vs[j] < Vs[min]
-						 	|| (Vs[j] == Vs[min] && 
-								Vs2[j] < Vs2[min])) {
+						 	|| (Vs2[j] < Vs2[min] && 
+								Vs[j] == Vs[min])) {
 							min = j;
 						}
 					}
@@ -525,6 +559,25 @@ void QGSimulation::pop() {
 					_order[i] = min;
 					_scheduled[min] = true;
 				}
+				// for (unsigned int i = _order.size() / 2; i < _order.size(); ++i) {
+				// 	min = -1;
+				// 	for (unsigned int j = 1; j < _order.size(); j=j+2) {
+				// 		if (_scheduled[j] || !_sourceV[j]->isSchedulable())
+				// 			continue;
+				// 		if (min < 0) {
+				// 			min = j;
+				// 			continue;
+				// 		}
+				// 		if (Vs[j] < Vs[min]
+				// 		 	|| (Vs[j] == Vs[min] && 
+				// 				Vs2[j] > Vs2[min])) {
+				// 			min = j;
+				// 		}
+				// 	}
+
+				// 	_order[i] = min;
+				// 	_scheduled[min] = true;
+				// }
 			} else {
 				shuffle();
 			}
@@ -562,6 +615,10 @@ void QGSimulation::addTriple(const std::string &sub, const std::string &pred, co
 	s->addEquation(_sourceV.size());
 	o->addCoequation(_sourceV.size());
 
+	s->addRemove(l.matrix_p(true));
+	o->addRemove(l.matrix_p(false));
+
+	_mandatory.set_bit(_sourceV.size(), !_slavemode.back());
 	_sourceV.push_back(s);
 	_operand.push_back(&l);
 	_dirs.push_back(true);
@@ -575,6 +632,7 @@ void QGSimulation::addTriple(const std::string &sub, const std::string &pred, co
 	o->addEquation(_sourceV.size());
 	s->addCoequation(_sourceV.size());
 
+	_mandatory.set_bit(_sourceV.size(), !_slavemode.back());
 	_sourceV.push_back(o);
 	_operand.push_back(&l);
 	_dirs.push_back(false);
@@ -673,4 +731,42 @@ unsigned QGSimulation::countTriples() {
 	}
 
 	return _triplecount;
+}
+
+const bool QGSimulation::schedulable(unsigned eq, const bool b) {
+	// static unsigned div = (_scheduled.size() <= 6 ? 2 : _scheduled.size() / 2 - 1);
+	static unsigned div = 2;
+
+	if (_scheduled[eq])
+		return false;
+	if (!_sourceV[eq]->isSchedulable())
+		return false;
+	if (!_mandatory[eq] && !mastersScheduled())
+		return false;
+
+	// breaks for actual H1 heuristic
+	if (b)
+		return true;
+
+	unsigned offset = eq % 2;
+	if (_mandatory[eq]) {
+		if (rand() % div)
+			return true;
+		if (offset ? _scheduled[eq-1] : _scheduled[eq+1]) {
+			for (unsigned i = 0; i < _scheduled.size(); i=i+2) {
+				if (_mandatory[i] && !(_scheduled[i] || _scheduled[i+1]))
+					return false;
+			}				
+		}
+	} else {
+		if (rand() % div)
+			return true;
+		if (offset ? _scheduled[eq-1] : _scheduled[eq+1]) {
+			for (unsigned i = 0; i < _scheduled.size(); i=i+2) {
+				if (!_mandatory[i] && !(_scheduled[i] || _scheduled[i+1]))
+					return false;
+			}
+		}
+	}
+	return true;
 }

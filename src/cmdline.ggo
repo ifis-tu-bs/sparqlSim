@@ -37,6 +37,10 @@ option "random" r
 "turns random order on"
 flag off
 
+option "permute" -
+"turns all permutation orders on"
+flag off dependon="csv"
+
 option "mindb" -
 "replaces the db by a minimal version"
 flag off
@@ -49,11 +53,25 @@ option "icde2019" -
 "turns evaluation mode of ICDE 2019 on"
 flag off
 
+section "Algorithms"
+
 option "maetal" -
-"turns evaluation against Ma et al. on"
+"turns on evaluation by Ma et al.'s algorithm"
+flag off
+
+option "hhk" -
+"turns on evaluation by HHK algorithm"
 flag off
 
 section "Output options"
+
+option "store" s
+"stores the compressed db to disk"
+flag off dependon="directory"
+
+option "directory" d
+"specifies the directory containing the compressed db"
+string optional
 
 option "pruning" p
 "enables output of the pruning files"
@@ -73,4 +91,8 @@ flag off
 
 option "verbose" v
 "specifies verbose output"
+flag off
+
+option "memory" -
+"reads all DB files and asks to quit the program"
 flag off

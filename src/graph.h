@@ -11,14 +11,12 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include <boost/dynamic_bitset.hpp>
 #include "bm.h"
 
 #include "simulation.h"
 #include "graph.io.h"
 
 using namespace std;
-using namespace boost;
 
 class Node;
 class Edge;
@@ -37,6 +35,8 @@ public:
 public:
 	// standard constructor
 	Graph();
+	// Graph Constructor with Hash Set Initializers
+	Graph(unsigned, unsigned);
 	// destructor
 	~Graph();
 
@@ -118,6 +118,16 @@ public:
 	string report();
 	void print(const int i);
 
+	// frees all memory but label
+	void memfree();
+	string labelBitStrings();
+
+	// store this database to disk
+	void store(const string &dir);
+
+	// sizeof memory consumption
+	string sizeOf();
+
 private:
 	unsigned int _redundancy = 0;
 
@@ -127,16 +137,14 @@ private:
 
 	vector<Label *> _Sigma;
 	// unordered_map<string, unsigned int> _rSigma;
-	map<string, unsigned int> _rSigma;
+	unordered_map<string, unsigned int> _rSigma;
 
 	unsigned long _numTriples = 0;
 	// vector<Edge *> _edges;
 	// vector<set<Edge *> > _edgesMap; // label i -> edgeset
 
-	vector<map<unsigned int, vector<unsigned int> > > _pree;
-	vector<map<unsigned int, vector<unsigned int> > > _postt;
-
-	// void edgesInit();
+	// vector<map<unsigned int, vector<unsigned int> > > _pree;
+	// vector<map<unsigned int, vector<unsigned int> > > _postt;
 
 /*
  *  Friend Functions

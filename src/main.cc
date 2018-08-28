@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <algorithm>
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -27,6 +29,10 @@ extern int _yyerror(char const *msg);
 
 extern vector<string> files;
 
+/// MACRO DEFINITIONS
+#define NODEMAX 500000000
+#define LABELMAX 100000
+
 
 // Graph *current;
 
@@ -40,6 +46,8 @@ QGSimulation *Q;
 extern CmdReturn cret;
 
 bool FIXPOINT_STRATEGY = false;
+
+enum { DEFAULT, MAETAL, HHK } algorithm = DEFAULT;
 
 int main(int argc, char **argv) {
 
@@ -57,6 +65,11 @@ int main(int argc, char **argv) {
 	}
 	if (args_info.maetal_flag) {
 		args_info.verbose_flag = 1;
+		algorithm = MAETAL;
+	}
+	if (args_info.hhk_flag) {
+		args_info.verbose_flag = 1;
+		algorithm = HHK;
 	}
 
 	Karla(args_info.verbose_flag);
@@ -66,7 +79,7 @@ int main(int argc, char **argv) {
 	| 1. Initialize varibales + Construct db |
 	|  - Graph db .. database file as graph  |
 	\****************************************/
-	DB = new Graph();
+	DB = new Graph(NODEMAX, LABELMAX);
 	Graph &db = *DB;
 	string fname; // the filename currently read
 	string bla;
@@ -97,6 +110,11 @@ int main(int argc, char **argv) {
 	Karla.start("begin compression");
 	db.compress();
 	Karla.end("begin compression");
+	// string q;
+	// cout << "Want to quit? ";
+	// cin >> q;
+	// if (q[0]=='y'||q[0]=='Y')
+	// 	return 0;
 
 	// Minimization of the database
 	Karla.start("minimize db");
@@ -104,6 +122,26 @@ int main(int argc, char **argv) {
 	Karla.end("minimize db");
 
 	Karla.report();
+
+	if (args_info.store_flag) {
+		Karla.start("store db to disk");
+		db.store(args_info.directory_arg);
+		Karla.end("store db to disk");
+	} 
+
+	// free all memory but matrices
+	if (args_info.memory_flag) {
+		ofstream cfile("memory.csv");
+		if (checkStream("memory.csv", cfile)) {
+			cfile << db.labelBitStrings() << endl << endl;
+
+			cfile << db.sizeOf();
+
+			cfile.close();
+		}
+
+		// return 0;
+	}
 
 	/* 2. Read more parameters */
 	vector<string> queries; // queries to process
@@ -237,8 +275,9 @@ int main(int argc, char **argv) {
 		cout << endl;
 
 		unsigned triplecount = 0;
+		vector<unsigned> order;
 
-		for (unsigned int i = 0; i < args_info.iterations_arg; ++i) {
+		for (unsigned int i = 0; i < args_info.iterations_arg || args_info.permute_flag; ++i) {
 
 			if (Q != NULL) {
 				delete Q;
@@ -282,16 +321,41 @@ int main(int argc, char **argv) {
 			delete query;
 
 			QGSimulation &sim = *Q;
-			
-			Karla.start("computing dualsim", fname);
-			
-			unsigned int iter = 0;
-			if (args_info.profile_flag && !i) {
-				iter = sim.fixpointWithProfile(3);
-			} else {
-				iter = sim.fixpoint(3);
+
+			if (args_info.permute_flag) {
+				if (!i) {
+					order = sim.getOrder();
+					sort(order.begin(), order.end());
+				} else {
+					if (!next_permutation(order.begin(),order.end())) {
+						break;
+					}
+				}
+				sim.setOrder(order);
 			}
 			
+			Karla.start("computing dualsim", fname);
+
+			unsigned int iter = 0;
+
+			switch (algorithm) {
+				case MAETAL: {
+					iter = sim.MaEtAl();
+					break;
+				}
+				case HHK: {
+					iter = sim.HHK();
+					break;
+				}
+				default: {
+					if (args_info.profile_flag && !i) {
+						iter = sim.fixpointWithProfile(3);
+					} else {
+						iter = sim.fixpoint(3);
+					}
+				}
+			}
+		
 			Karla.end("computing dualsim", fname);
 
 			// if (!i) {
@@ -367,5 +431,5 @@ int main(int argc, char **argv) {
 	Karla.report();
 	delete DB;
 
-  return 0;
+	return 0;
 }

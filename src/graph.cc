@@ -1,15 +1,14 @@
 #include "graph.h"
 
+#include <cstdint>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <fstream>
 #include <queue>
-#include <boost/dynamic_bitset.hpp>
 #include <bitset>
 
 using namespace std;
-using namespace boost;
 
 #include "edge.h"
 #include "node.h"
@@ -21,6 +20,13 @@ extern Reporter Karla;
 
 // Standard constructur & destructor
 Graph::Graph() {
+}
+
+Graph::Graph(unsigned nodesize, unsigned labelsize) :
+  Graph()
+{
+	_rnodes.rehash(nodesize);
+	_rSigma.rehash(labelsize);
 }
 
 Graph::~Graph() {
@@ -555,4 +561,61 @@ unsigned int Graph::Esize() {
 	// // cout << size << endl;
 	// return size;
 	return _numTriples;
+}
+
+void Graph::memfree() {
+	for (Node *n : _nodes) {
+		delete n;
+	}
+	_nodes.clear();
+	_rnodes.clear();
+	_rSigma.clear();
+	for (Label *l : _Sigma) {
+		l->nostr();
+	}
+}
+
+string Graph::sizeOf() {
+	uint64_t size;
+	stringstream s;
+
+	for (Node *n : _nodes) {
+		size += n->sizeOf();
+	}
+	s << "============================" << endl;
+	s << "  size of node set:         " << size << endl;
+	size += sizeof(Node *) * _nodes.size();
+	s << "  size of pointers:         " << sizeof(Node *) * _nodes.size() << endl;
+
+	uint64_t rnset = sizeof(unordered_map<string,unsigned>)
+						+ _rnodes.size() * sizeof(unsigned);
+	// for (auto &e : _rnodes) {
+	// 	rnset +=  sizeof(unsigned);
+	// }
+	s << "  size of reverse node set: " << rnset << endl;
+	size += rnset;
+
+	uint64_t lsize = 0;
+	unsigned csize = 0;
+	s << "----------------------------" << endl;
+	for (Label *l : _Sigma) {
+		s << l->sizeOf(csize) << endl;
+		lsize += csize;
+	}
+	s << "----------------------------" << endl;
+	size += lsize;
+	s << "  size of \\Sigma:          " << lsize << endl;
+	size += sizeof(Label *) * _Sigma.size();
+	s << "  size of pointers:         " << sizeof(Label *) * _Sigma.size();
+	rnset = sizeof(map<string,unsigned>)
+			+ _rSigma.size() * sizeof(unsigned);
+	// for (auto &e : _rSigma) {
+	// 	rnset += e.first.size() * sizeof(char) + sizeof(string)/2 + sizeof(unsigned);
+	// }
+	s << "  size of reverse \\Sigma:  " << rnset << endl;
+	size += rnset;
+	s << "  overall size:             " << size << endl;
+	s << "============================" << endl;
+
+	return s.str();
 }

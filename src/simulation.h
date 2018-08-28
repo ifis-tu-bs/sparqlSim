@@ -35,7 +35,6 @@ private:
 	bool _computedSim = false;
 
 	unsigned int _max; // max-size of simulation vectors
-	unsigned int max() const { return _max; }
 
 	std::vector<bool> _isEmpty; // tracks whether simulation is empty
 
@@ -43,7 +42,7 @@ public:
 	// Standard Constructor
 	QGSimulation(Graph &DB);
 
-	// Copy Constructor
+	// Copy Constructors
 	QGSimulation(QGSimulation &s, bm::bvector<> &ball, bm::bvector<> &border);
 
 	// Destructor
@@ -56,6 +55,8 @@ public:
 
 	// original algorithm as proposed by Ma et al. (2011/2014)
 	unsigned int MaEtAl();
+	// original HHK algorithm by Henzinger et al. (1995)
+	unsigned int HHK();
 
 	// sets the i'th equation to unstable
 	void setUnstable(const unsigned int i);
@@ -71,6 +72,8 @@ public:
 	void print();
 
 	void profile();
+
+	unsigned int max() const { return _max; }
 
 	void setEmpty(const bool val) { _empty = val; }
 
@@ -97,8 +100,30 @@ public:
 
 	unsigned countTriples();
 
+	const bool schedulable(unsigned eq, const bool b = false);
+
 	const bool scheduled(const int eq) {
 		return _scheduled[eq];
+	}
+
+	const bool mastersScheduled() const {
+		unsigned m = _mandatory.get_first();
+		if (!m && !_mandatory[0]) {
+			return true;
+		}
+		do {
+			if (!_scheduled[m])
+				return false;
+		} while (m = _mandatory.get_next(m));
+		return true;
+	}
+
+	void setOrder(std::vector<unsigned> order) {
+		_order = order;
+	}
+
+	std::vector<unsigned> getOrder() {
+		return _order;
 	}
 
 private:
@@ -111,6 +136,8 @@ private:
 	OpList _operand;
 	Directions _dirs; // stores forwards/backwards edge information
 	VarList _targetV;
+
+	bm::bvector<> _mandatory;
 
 	std::multimap<std::string, unsigned> _labels;
 	
@@ -141,6 +168,7 @@ private:
 	bool _triplescounted = false;
 
 	bool stable() const;
+	bool mastersStable() const;
 
 	void unstable(const unsigned int id);
 	void unstable1(const unsigned int id);

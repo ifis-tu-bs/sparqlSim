@@ -13,9 +13,7 @@ sparqlsim_SOURCES = cmdline.c cmdline.h \
 					simulation.h simulation.cc \
 					variable.h variable.cc \
 					smatrix.h smatrix.cc \
-					algorithms.h algorithms.cc \
-					reporter.h \
-					main.cc
+					reporter.h main.cc
 
 sparqlsim_CPPFLAGS = -I../resources/bm/src
 

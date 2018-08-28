@@ -2,6 +2,7 @@
 #define VARIABLE_H
 
 #include "bm.h"
+#include "smatrix.h"
 
 #include <map>
 #include <string>
@@ -55,7 +56,7 @@ public:
 
 	void operator<=(Variable &);
 
-	void addEquation(const unsigned int idx);
+	void addEquation(const unsigned int idx, SMatrix * = NULL);
 	void addCoequation(const unsigned int idx);
 	vector<unsigned> &equations();
 
@@ -132,8 +133,42 @@ private:
 	vector<unsigned> _equations;
 	vector<unsigned> _coequations;
 
+
 	bool _const = false;
 	bool _isNull = false;
+
+public:
+	void initRemoves();
+
+	bm::bvector<> remove(SMatrix *s) {
+		return _remove[s];
+	}
+
+	void addRemove(SMatrix *s) {
+		_remove[s] = bm::bvector<>();
+		_remove[s].reset();
+	}
+
+	void minus(bm::bvector<> &rset) {
+		// cerr << "trying to subtract" << endl;
+		// SMatrix::print(_val);
+		// SMatrix::print(rset);
+		_val -= rset;
+		// cerr << "success" << endl;
+	}
+
+	void clearRemoveSet(SMatrix *s) {
+		_remove[s].reset();
+	}
+
+	void addRemoveSet(SMatrix *s, bm::bvector<> &rem) {
+		_remove[s] |= rem;
+	}
+
+private:
+	// for HHK algorithm:
+	map<SMatrix *, bm::bvector<> > _remove;
+	//vector<SMatrix *> _remover; // pre/post to update remove
 
 };
 

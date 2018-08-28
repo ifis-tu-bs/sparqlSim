@@ -4,9 +4,9 @@
 #include "label.h"
 #include "utils.h"
 
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
+//#include <boost/iostreams/filtering_streambuf.hpp>
+//#include <boost/iostreams/copy.hpp>
+//#include <boost/iostreams/filter/gzip.hpp>
 #include <limits>
 
 #include <cstdio>
@@ -18,7 +18,9 @@
 
 #include <map>
 
-using namespace boost::iostreams;
+#include "primes.h"
+
+//using namespace boost::iostreams;
 
 #define BATCH_SIZE 1000
 
@@ -84,7 +86,12 @@ void printSettings() {
 	     << "virtuoso output .. " << (args_info.virtuoso_flag ? "on" : "off") << endl
 	     << "verbose output  .. " << (args_info.verbose_flag ? "on" : "off") << endl << endl
 	     << "random order    .. " << (args_info.random_flag ? "on" : "off") << endl
-	     << "#iterations     .. " << args_info.iterations_arg << endl;
+	     << "#iterations     .. ";
+    if (args_info.permute_flag)
+		cout << "all permutations";
+	else
+		cout << args_info.iterations_arg;
+	cout << endl;
 }
 
 char getDelimiter() {

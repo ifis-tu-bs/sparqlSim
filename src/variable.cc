@@ -162,8 +162,11 @@ void Variable::operator<=(Variable &master) {
 	addMaster(master);
 }
 
-void Variable::addEquation(const unsigned int idx) {
+void Variable::addEquation(const unsigned int idx, SMatrix *m) {
 	_equations.push_back(idx);
+
+	if (m != NULL && _remove.find(m) != _remove.end())
+		_remove[m] = bm::bvector<>(_soi->max());
 }
 
 void Variable::addCoequation(const unsigned int idx) {
@@ -221,4 +224,14 @@ const bool Variable::isScheduled() {
 			return false;
 	}
 	return true;
+}
+
+void Variable::initRemoves() {
+	for (auto &rem : _remove) {
+		// SMatrix::print(rem.second);
+		rem.second = rem.first->multiplyMe(_val);
+		// SMatrix::print(rem.second);
+		rem.second.flip();
+		// SMatrix::print(rem.second);
+	}
 }

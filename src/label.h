@@ -22,6 +22,7 @@ public:
 	const bool operator!=(const Label &l) const { return l._me != _me; }
 
 	const string & str() const { return _me; }
+	void nostr() { _me = ""; }
 
 	void set(unsigned int ro, unsigned int co) {
 		_a.set(ro,co);
@@ -49,6 +50,10 @@ public:
 		return _a;
 	}
 
+	SMatrix *a_p() {
+		return &_a;
+	}
+
 	void addARow(const string &buf) {
 		_a.string2row(buf);
 	}
@@ -57,8 +62,16 @@ public:
 		return _aT;
 	}
 
+	SMatrix *aT_p() {
+		return &_aT;
+	}
+
 	SMatrix &matrix(const bool &forwards) {
 		return (forwards ? _a : _aT);
+	}
+
+	SMatrix *matrix_p(const bool &forwards) {
+		return (forwards ? &_a : &_aT);
 	}
 
 	void addATRow(const string &buf) {
@@ -79,8 +92,21 @@ public:
 		_aT.setMax(n);
 	}
 
+	string sizeOf(unsigned &size) {
+		stringstream s;
+		unsigned as, ats;
+
+		s << "    " << _me << endl;
+		s << "    a:  " << (as = _a.sizeOf()) << endl;
+		s << "    aT: " << (ats = _aT.sizeOf()) << endl;
+
+		size = as + ats + _me.size()*sizeof(char);
+
+		return s.str();
+	}
+
 private:
-	const string _me;
+	string _me;
 
 	// adjacency matrix
 	SMatrix _a;
