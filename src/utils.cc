@@ -18,8 +18,6 @@
 
 #include <map>
 
-#include "primes.h"
-
 //using namespace boost::iostreams;
 
 #define BATCH_SIZE 1000
