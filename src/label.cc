@@ -1,26 +1,58 @@
 #include "label.h"
 #include "smatrix.h"
 
-// void setAColV(unsigned char *buf) {
-// 	_a.deserializeColV(buf)
-// }
+Label::Label(const string &l) : 
+	_me(l), 
+	_a(new SMatrix()), 
+	_aT(new SMatrix()) 
+{
 
-// void setATColV(unsigned char *buf) {
-// 	_aT.deserializeColV(buf);
-// }
+}
 
-// SMatrix &a() {
-// 	return _a;
-// }
+Label::Label(const unsigned &dim, const string &l) :
+	_me(l),
+	_a(new SMatrix(dim)),
+	_aT(new SMatrix(dim))
+{
 
-// void addARow(const string &buf) {
-// 	_a.string2row(buf);
-// }
+}
 
-// SMatrix &aT() {
-// 	return _aT;
-// }
+Label::~Label() {
+	if (_a)
+		delete _a;
+	if (_aT)
+		delete _aT;
 
-// void addATRow(const string &buf) {
-// 	_aT.string2row(buf);
-// }
+	_a = _aT = NULL;
+}
+
+void Label::set(unsigned int ro, unsigned int co) {
+	// cout << "here" << endl;
+	// cout << _a << " " << _aT << endl;
+	_a->set(ro,co);
+	_aT->set(co,ro);
+}
+
+void Label::set2(unsigned int ro, unsigned int co) {
+	// cout << "here" << endl;
+	// cout << _a << " " << _aT << endl;
+	_a->set2(ro,co);
+	// _aT->set2(co,ro, final);
+	// if (final) {
+	// 	setAT(new SMatrix(*_a, true));
+	// }
+}
+
+void Label::makeFinal() {
+	_a->makeFinal();
+	setAT(new SMatrix(*_a, true));
+}
+
+bool Label::operator()(const unsigned int row, const unsigned int col) {
+	// return a()[row][col];
+	return (*_a)(row, col);
+}
+
+bm::bvector<> Label::unionRow(const unsigned ro) {
+	return _a->rowBV(ro) | _aT->rowBV(ro);
+}

@@ -1,6 +1,7 @@
 bin_PROGRAMS = sparqlsim
 
-sparqlsim_SOURCES = cmdline.c cmdline.h \
+sparqlsim_SOURCES = centeredstrongsimulation.cc \ centeredstrongsimulation.h \
+					cmdline.c cmdline.h \
 					cmdline-parser.yy cmdline-lexer.ll cmdline-parser.h \
 					graph-parser.yy graph-lexer.ll \
 					utils.h utils.cc \
@@ -8,12 +9,15 @@ sparqlsim_SOURCES = cmdline.c cmdline.h \
 					label.h label.cc \
 					graph.h graph.cc \
 					graph.io.h graph.io.cc \
-					edge.h edge.cc \
-					graph.query.cc \
-					simulation.h simulation.cc \
+					simulations.h simulation.h simulation.cc \
+					hhk.h hhk.cc \
+					maetal.h maetal.cc \
+					strongsimulation.h strongsimulation.cc \
+					allds.h allds.cc \
 					variable.h variable.cc \
 					smatrix.h smatrix.cc \
-					reporter.h main.cc
+					reporter.h reporter.cc \
+					main.cc
 
 sparqlsim_CPPFLAGS = -I../resources/bm/src
 
@@ -21,7 +25,7 @@ BUILT_SOURCES = cmdline.c
 EXTRA_DIST =
 MAINTAINERCLEANFILES =
 
-AM_CXXFLAGS = -std=c++11 -O9
+AM_CXXFLAGS = -std=c++11 -pthread
 
 cmdline.c: cmdline.ggo
 		gengetopt --input=$<

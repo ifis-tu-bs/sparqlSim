@@ -1,0 +1,14 @@
+#s1.txt
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> PREFIX snvoc: <http://www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> SELECT * WHERE { ?person snvoc:id ?p_placeid . ?person snvoc:firstName ?p_firstname . ?person snvoc:lastName ?p_lastname . ?person snvoc:gender ?p_gender . ?person snvoc:birthday ?p_birthday . ?person snvoc:creationDate ?p_creationdate . ?person snvoc:locationIP ?p_locationip . ?person snvoc:isLocatedIn ?p_place . ?person snvoc:browserUsed ?p_browserused . }
+#s2.txt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> PREFIX snvoc: <http://www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> SELECT * WHERE { ?pers snvoc:id ?p_placeid . ?post snvoc:hasCreator ?pers . ?post snvoc:content ?con . ?post snvoc:imageFile ?image . ?post snvoc:creationDate ?cd . ?post snvoc:replyOf ?orig . ?orig rdf:type snvoc:Post . ?orig snvoc:hasCreator ?person1 . ?person1 snvoc:firstName ?firstn . ?person1 snvoc:lastName ?lastn . }
+#s3.txt
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> PREFIX snvoc: <http://www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> SELECT * WHERE { ?person snvoc:id ?p_placeid . ?person snvoc:knows ?tmp . ?tmp snvoc:creationDate ?k_since . ?tmp snvoc:hasPerson ?fr . ?fr snvoc:firstName ?p_friendfirstname . ?fr snvoc:lastName ?p_friendlastname . }
+#s4.txt
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> PREFIX snvoc: <http://www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> SELECT * WHERE { ?post snvoc:id ?p_placeid . ?post snvoc:content ?con . ?post snvoc:imageFile ?image . ?post snvoc:creationDate ?dt . }
+#s5.txt
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> PREFIX snvoc: <http://www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> SELECT * WHERE { ?post snvoc:id ?p_placeid . ?post snvoc:hasCreator ?creator . ?creator snvoc:firstName ?p_firstname . ?creator snvoc:lastName ?p_lastname . }
+#s6.txt
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> PREFIX snvoc: <http://www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> SELECT * WHERE { ?post snvoc:id ?p_placeid . ?post snvoc:replyOf ?orig . ?orig rdf:type snvoc:Post . ?forum snvoc:containerOf ?orig . ?forum snvoc:title ?title . ?forum snvoc:hasModerator ?moderator . ?moderator snvoc:firstName ?first . ?moderator snvoc:lastName ?last . }
+#s7.txt
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> PREFIX snvoc: <http://www.ldbc.eu/ldbc_socialnet/1.0/vocabulary/> SELECT * WHERE { ?post snvoc:id ?p_placeid . ?post snvoc:hasCreator ?author . ?comment snvoc:replyOf ?post . ?comment snvoc:content ?content . ?comment snvoc:creationDate ?dt . ?comment snvoc:hasCreator ?creator . ?creator snvoc:firstName ?creatorfirstname . ?creator snvoc:lastName ?creatorlastname . }

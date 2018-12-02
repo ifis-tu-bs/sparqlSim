@@ -10,19 +10,20 @@
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
+#include <functional>
 
+#include "smatrix.h"
 #include "bm.h"
-
-#include "simulation.h"
-#include "graph.io.h"
 
 using namespace std;
 
+class StrongSimulation;
 class Node;
 class Edge;
 class Triple;
 class Label;
 class MinGraph;
+class SMatrix;
 
 class Graph {
 
@@ -40,200 +41,122 @@ public:
 	// destructor
 	~Graph();
 
-	// Constructor for balls g(w,dq) with center w and distance dq
-	// Graph(Graph &g, const unsigned int w, const unsigned int dq);
-	// Extract Match Graph according to sim
-	Graph(Graph &g, Graph &q, Simulation &sim);
-	// ExtractPerfectMatch constructor (connected components)
-	Graph(Graph &g, const unsigned int w = 0);
+	/// Adder and Getter
 
-	// edge-reduction wrt. the given alphabet of g: simulation initialized
-	void reduce(Graph &g, Simulation &sim);
-	pair<unsigned int, unsigned int> pruning(ofstream &os, Graph &q, Simulation &sim);
-	pair<unsigned int, unsigned int> pruning(Graph &q, Simulation &sim);
+	// add node by name
+	const unsigned int addNode(const string &name);
+	// get node name by index
+	const string getNodeName(const unsigned idx) const;
+	// get node index by name
+	// const unsigned int getIndex(const string &name) const;
+	const unsigned int getNodeIndex(const string &name);
 
-	// Returns a graph containing sim-equivalence classes of nodes
-	Graph & operator[](Simulation &sim);
+	// add label by name
+	const unsigned int addLabel(const string &label);
 
-	// Node Methods
-	unsigned int addNode(const string &name);
+	// get label by index
+	Label &getLabel(const unsigned int idx);
+	// get label by name
+	Label &getLabel(const string &name);
 
-private:
-	unsigned int addNode(Node &n); // private node adder for ball constructor
+	// add triple by sub, pred, obj strings
+	void addTriple(const string &sub, const string &pre, const string &obj);
 
-public:
-	Node &getNode(const unsigned int idx);
-	Node &getNode(const string &name);
+	// dummy node business
+	const Node &dummy(const unsigned idx);
+	const Node &dummy(const string &name);
 
-	unsigned int getIndex(Node &n);
-	unsigned int getIndex(const string &name);
-
-	Node &operator()(const int idx) { return getNode(idx); }
-	Node &operator()(const string &name) { return getNode(name); }
-
-	bool existsNode(const string &name) const;
-
-	void clearNodes();
-
-	// Label methods
-	unsigned int addLabel(const string &label);
+	void computeBall(bm::bvector<> &ball, const unsigned dia, bm::bvector<> &border);
+	void computeAllBalls(vector<bm::bvector<> > &balls, vector<bm::bvector<> > &borders, const unsigned radius, bm::bvector<> &which);
 
 private:
-	unsigned int addLabel(Label &l);
+	// handy node to return when no other is available
+	static Node &_dummy;
 
-public:
+public: /// Query and Info Methods ///
+
+	const bool existsNode(const string &name);
+	const bool isNode(const string &name);
+
 	const bool isLabel(const string &l);
 	const bool isLetter(const string &l);
 
-	Label &getLabel(unsigned int idx);
-	Label &getLabel(const string &name);
-
-	void updateLabels();
-
-	// Triple Methods
-	void addTriple(const string &sub, const string &pre, const string &obj);
-	// void addTriple(Edge *e);
-	void addTriplesFromNTriple(const string &fname);
-
-	// Edge & edge(const unsigned int &i) const;
-	void printLabels();
-
-
-	// query methods
-	unsigned int size() const {
-		return Vsize();// + Esize();
-	}
-	unsigned int Vsize() const { return _nodes.size(); }
-	unsigned int Esize();
-	bool empty() const { return _nodes.empty(); }
-
-	unsigned int Ssize() const { return _Sigma.size(); }
+	/// Size Info
+	const unsigned int size() const;
+	const unsigned int Vsize() const;
+	const unsigned int Esize() const;
+	const unsigned int Ssize() const;
 
 	// computes the shortest path between two nodes v1 and v2
 	int distance(const unsigned int v1, const unsigned int v2);
 	// computes the maximal distance within the graph
 	int diameter();
 
-	// returns report string
-	string report();
-	void print(const int i);
+	//inflate Balls in StrongSim
+	void increaseDiameter(bm::bvector<> &ball, bm::bvector<> &border, std::vector<std::set<SMatrix *> > &spheres, const unsigned rad);
+	void increaseDiameter(bm::bvector<> &ball, bm::bvector<> &border, std::set<SMatrix *> &sphere, const unsigned rad);
 
-	// frees all memory but label
-	void memfree();
-	string labelBitStrings();
+public: /// Streaming and Output ///
+	// returns report string
+	void report(ostream &os) const;
 
 	// store this database to disk
 	void store(const string &dir);
-
-	// sizeof memory consumption
-	string sizeOf();
+	// load database from disk (after stored)
+	void load(const string &dir);
 
 private:
-	unsigned int _redundancy = 0;
+	// hash function to be used in load mode
+	hash<string> strHash;
+	// configurations as stored for load option
+	map<string,string> config;
 
+	// set of nodes
 	vector<Node *> _nodes;
-	// unordered_map<string, unsigned int> _rnodes;
+	// reverse index on _nodes
 	unordered_map<string, unsigned int> _rnodes;
+	// stores hashes instead of strings as key
+	map<size_t, unsigned> _Rnodes;
 
+	// returns index of node "name" in _nodes
+	const unsigned rnodes(const string &name);
+
+	// node number: replaces the size in load mode
+	unsigned _nodenum;
+
+	// set of labels
 	vector<Label *> _Sigma;
-	// unordered_map<string, unsigned int> _rSigma;
+	// reverse index on _Sigma
 	unordered_map<string, unsigned int> _rSigma;
+	// stores hashes instead of string predicates
+	map<size_t, unsigned> _RSigma;
 
+	// returns the index if label "name" in _Sigma
+	const unsigned rSigma(const string &name);
+
+	// number of triples read
 	unsigned long _numTriples = 0;
-	// vector<Edge *> _edges;
-	// vector<set<Edge *> > _edgesMap; // label i -> edgeset
 
-	// vector<map<unsigned int, vector<unsigned int> > > _pree;
-	// vector<map<unsigned int, vector<unsigned int> > > _postt;
+	// vector<bm::bvector<> > NEIGHBORS;
+	SMatrix NEIGHBORS;
 
-/*
- *  Friend Functions
- */
+	void addNeighbors(const unsigned n1, const unsigned n2);
+	
 public:
-	friend ostream & operator<<(ostream &os, Graph &g);
+	// vector<bm::bvector<> > &neighbors();
+	SMatrix &neighbors();
 
-	friend void dualSim(Graph &q, Graph &ball, Simulation &sim);
-
-/*
- *  Group Capabilities for Query Graphs
- */
-public:
-	// pushes another layer of groups
-	void push();
-	// pushes a certain layer of groups
-	void push(unsigned int i);
-
-	// removes group layer from stack
-	void pop();
-
-	// returns reference to top group
-	set<Edge *> & top();
-
-	// closes current group, i.e., shifts current group objects to new subgroup
-	void close();
-
-	// specifies operator type
-	void Optional() {
-		_query[_left][OPTIONAL] = _P.back();
-	}
-	void Join() {
-		_query[_left][JOIN] = _P.back();
-	}
-	void Join(Simulation &sim, Graph &g);
-	void Union() {
-		_query[_left][UNION] = _P.back();
-	}
-	void Group() {
-		_query[_P.back()][GROUP] = _left;
-	}
-
-	// prints the query using group g as root
-	string printQuery(unsigned int g = 0);
-	// prints a single group if nonempty
-	string printGroup(unsigned int g);
-
-	// print insert graph in n-triple format
-	string printInsert(Simulation &sim, Graph &g);
-
-	// returns the number of groups (size of container _groups)
-	unsigned int groupSize() const { return _groups.size(); }
-	unsigned int groupCount() const { return groupSize(); }
-
-	// returns whether or not ith group is empty
-	bool groupEmpty(unsigned int i) const { return _groups[i].empty(); }
-
-	// checks whether a specific edge is contained in group _groups[g]
-	bool inGroup(Edge &e, unsigned int g);
-	bool inGroup(const string &sub, const string &pred, const string &obj, unsigned int g);
-
-	// checks whether a node is contained in group _groups[g]
-	bool nodeInGroup(Node &n, unsigned int g);
-	bool nodeInGroup(unsigned int n, unsigned int g);
-
-	vector<unsigned int> & compatGroups(unsigned int g);
-	void subGrouping(unsigned int g = 0);
-	vector<unsigned int> subGroups(unsigned int g, bool flag = false);
-	vector<unsigned int> mandatorySubs(unsigned int g, bool flag = false);
-
-	set<Edge *> &group(unsigned int g) { return _groups[g]; }
-
-/*
- *  Grouping Fields
- */
 private:
-	// stores all groups
-	vector<set<Edge *> > _groups;
-	vector<vector<unsigned int> > _compats; // mapping of compatible groups
-	// stack of group pointers
-	vector<unsigned int> _P;
-	// last group left by pop()
-	unsigned int _left;
+	void loadRow(const unsigned label, const string &line);
 
-	// QueryType to navigate through main functionalities
-	typedef enum { GROUP, OPTIONAL, JOIN, UNION } QueryType;
-	// stores to each group its operand and type
-	map<unsigned int, map<QueryType, unsigned int> > _query;
+	// vector<bm::bvector<> > &neighbors();
+
+	// friend void inflate(bm::bvector<> &ball, bm::bvector<> &border, Graph &g, const unsigned radius);
+	// friend void inflate0(const unsigned pid, const unsigned min, const unsigned max, Graph &g, vector<bm::bvector<> > &balls, vector<bm::bvector<> > &borders, const int d);
 
 };
+
+// void inflate(bm::bvector<> &ball, bm::bvector<> &border, Graph &g, const unsigned radius);
+// void inflate0(const unsigned pid, const unsigned min, const unsigned max, Graph &g, vector<bm::bvector<> > &balls, vector<bm::bvector<> > &borders, const int d);
 
 #endif /* GRAPH_H */

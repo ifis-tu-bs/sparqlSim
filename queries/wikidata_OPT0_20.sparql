@@ -1,0 +1,20 @@
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P1566> "9047037" . }   
+SELECT ?var1 ?var1Label WHERE { ?var1 <http://www.wikidata.org/prop/direct/P2671> "string1" . }   
+SELECT ?var1 WHERE { <https://en.wikipedia.org/wiki/Aerospace%2520manufacturer> <http://schema.org/about> ?var1 . }   
+SELECT ?var1 ?var2 WHERE { ?var1 ?var2 <http://www.wikidata.org/entity/statement/Q18556361-296B8D7F-F2A1-4FB2-BB41-DF1666F4A639> . }   
+SELECT ?var1 WHERE { <http://www.wikidata.org/entity/Q715317> <http://www.wikidata.org/prop/direct/P235> ?var1 . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P646> "/m/02vn4w8" . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P1566> "10085037" . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P905> "94091" . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P2346> "975076" . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P345> "nm0403446" . }   
+SELECT ?var1 WHERE { <http://www.wikidata.org/entity/Q130336> <http://www.wikidata.org/prop/direct/P235> ?var1 . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P31> <http://www.wikidata.org/entity/Q482994> . ?var1 <http://www.w3.org/2000/01/rdf-schema#label> "string1"@en . }   
+SELECT ?var1 WHERE { <http://www.wikidata.org/entity/P2397> <http://www.wikidata.org/prop/direct/P279> ?var1 . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P1970> "54129" . }   
+SELECT ?var1 WHERE { <http://wikidata.org/entity/Q641> <http://www.w3.org/2002/07/owl#sameAs> ?var1 . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P345> "nm3283923" . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P345> "ch0258735" . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P3143> "1009962" . }   
+SELECT ?var1 WHERE { <http://www.wikidata.org/entity/Q62736> <http://www.wikidata.org/prop/direct/P2293> ?var1 . }   
+SELECT ?var1 WHERE { ?var1 <http://www.wikidata.org/prop/direct/P1192> <http://www.wikidata.org/entity/Q2036> . }   

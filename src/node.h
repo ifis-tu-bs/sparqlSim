@@ -20,6 +20,11 @@ public:
 
 	// void setName(const string &name);
 	const string & getName() const;
+	const string & str() const { return getName(); }
+
+	void setName(const string &name) {
+		_name = name;
+	}
 
 	const unsigned label() { return _label; }
 	void addLabel(unsigned idx) {

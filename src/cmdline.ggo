@@ -1,8 +1,8 @@
-package "StrongSim"
-version "0.1"
-purpose "This tool computes strong simulating matches in a given database based on a given pattern."
-usage "strongsim [OPTIONS] [DB1] [DB2] ... [DBk]"
-description "Compute strong simulating matches in a given database."
+package "sparqlSim"
+version "0.9"
+purpose "This tool computes dual simulating matches in a given database based on a SPARQL query."
+usage "sparqlsim [OPTIONS] [DB1] [DB2] ... [DBk]"
+description "Compute simulating matches in a given database."
 
 args "-u"
 
@@ -13,19 +13,55 @@ option "delim" -
 values="tab","space" default="space"
 optional
 
+option "format" -
+"specifies the import format"
+string typestr="FORMAT" optional
+
+option "load" l
+"loads DB from compressed files (produced by store)"
+flag off
+
+option "bounds" b
+"preset the bounds for the hash spaces (nodes and predicates)"
+string typestr="NODEMAX:PREDMAX" optional
+
+option "quota" Q
+"set the maximal number of triples that shall be imported"
+long typestr="N" default="-1" optional
+
+section "Database Options"
+
+option "store" s
+"stores the compressed db to the given directory"
+string typestr="DIR" optional
+
+option "mindb" -
+"replaces the db by a minimal version"
+flag off
+
+option "no-compression" -
+"does not start compression"
+flag off
+
 section "Query options"
 
 option "input" f
 "specifies a query input file"
 multiple string typestr="FILENAME" optional
 
-option "exec" e
+option "exec" -
 "specifies a query as string"
 multiple string typestr="SPARQL QUERY" optional
 
 option "shell" -
 "whether or not to enter interactive mode after reading/executing"
 flag off
+
+option "eval" e
+"specifies evaluation semantics"
+multiple values="DUAL","HHK","MAETAL","MINDUAL","PRUNE","STRONG","CSTRONG" enum
+default="PRUNE"
+optional
 
 section "Computation options"
 
@@ -41,10 +77,6 @@ option "permute" -
 "turns all permutation orders on"
 flag off dependon="csv"
 
-option "mindb" -
-"replaces the db by a minimal version"
-flag off
-
 option "debug" -
 "turns on debug mode"
 flag off
@@ -53,46 +85,33 @@ option "icde2019" -
 "turns evaluation mode of ICDE 2019 on"
 flag off
 
-section "Algorithms"
-
-option "maetal" -
-"turns on evaluation by Ma et al.'s algorithm"
-flag off
-
-option "hhk" -
-"turns on evaluation by HHK algorithm"
-flag off
+option "threads" t
+"specifies the number of threads"
+int typestr="N" default="1" optional
 
 section "Output options"
 
-option "store" s
-"stores the compressed db to disk"
-flag off dependon="directory"
-
-option "directory" d
-"specifies the directory containing the compressed db"
-string optional
-
-option "pruning" p
-"enables output of the pruning files"
-flag off
+option "output" o
+"turns result output mode on"
+values="FILE","STDOUT","STDERR","STDLOG" enum
+default="FILE" optional
 
 option "profile" -
 "enables query profiling"
+flag off
+
+option "stats" -
+"enables statistics output"
 flag off
 
 option "csv" -
 "enables csv output of statistics"
 flag off
 
-option "virtuoso" -
-"produces files relevant for experiments with Virtuoso"
-flag off
-
 option "verbose" v
 "specifies verbose output"
 flag off
 
-option "memory" -
-"reads all DB files and asks to quit the program"
-flag off
+option "verbose-file" V
+"specifies output file for verbose output; otherwise printed to STDLOG"
+string typestr="FILE" optional

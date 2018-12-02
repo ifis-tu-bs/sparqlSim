@@ -55,10 +55,6 @@ extern gengetopt_args_info args_info;
 
 extern Reporter Karla;
 
-extern stringstream _literal, _iri;
-
-string subj, pred, obj;
-
 unsigned N = 1;
 
 %}
@@ -69,7 +65,7 @@ unsigned N = 1;
 %defines
 
 %token IRI XLITERAL SLITERAL TRIPLE_END NEWLINE
-%token PREFIX SEMICOLON COLON
+%token PREFIX SEMICOLON COLON UNDERSCORE
 
 %union {
   char *str;
@@ -77,7 +73,11 @@ unsigned N = 1;
 }
 
 %type <str> IRI
-%type <str> prefix
+%type <str> subject
+%type <str> predicate
+%type <str> object
+%type <str> XLITERAL
+
 
 
 %start start
@@ -89,18 +89,7 @@ start:
 ;
 
 prefix_declaration:
-  PREFIX prefix dotopt prefix_declaration
-| /* empty */
-;
-
-prefix:
-  COLON IRI
-  {  }
-;
-
-dotopt:
-  TRIPLE_END
-| /* empty */
+  /* empty */
 ;
 
 triples:
@@ -109,31 +98,33 @@ triples:
 ;
 
 triple:
-  subject predicate object
+  subject predicate object TRIPLE_END
   {
-    //cout << $1 << " " << $2 << " " << _literal.str() << endl;
-    if (N++ % 100000000 == 0) {
-      cerr << N-1 << " : ";
-      cerr << subj << " " << pred << " " << obj << " ." << endl;
-
-    }
-    DB->addTriple(subj, pred, obj);
-    subj.clear(); pred.clear(); obj.clear();
+    // cout << subj << " " << pred << " " << obj << endl;
+    // if (N++ % 100000000 == 0) {
+      Karla << N-1 << " : " 
+            << $1 << " " 
+            << $2 << " " 
+            << $3 << " .";
+      Karla.endline();
+    // }
+    DB->addTriple($1, $2, $3);
   }
 ;
 
 subject:
-  IRI { subj = _iri.str(); _iri.str(""); }
+  IRI { $$ = $1; }
 ;
 
 predicate:
-  IRI { pred = _iri.str(); _iri.str(""); }
+  IRI { $$ = $1; }
 ;
 
 object:
-  XLITERAL TRIPLE_END { obj = _literal.str(); _literal.str(""); }
-| IRI TRIPLE_END { obj = _iri.str(); _iri.str(""); }
-| SLITERAL { obj = _literal.str(); _literal.str(""); }
+  XLITERAL { 
+    $$ = $1; 
+  }
+| subject { $$ = $1; }
 ;
 
 /* <<-- CHANGE END -->> */

@@ -3,16 +3,19 @@
 #include "node.h"
 #include "label.h"
 #include "simulation.h"
-#include "edge.h"
 #include "smatrix.h"
 #include "utils.h"
+#include "reporter.h"
 
 #include "bm.h"
 #include "bmserial.h"
 
+#include <cstdint>
 #include <sstream>
 
 using namespace std;
+
+extern Reporter Karla;
 
 /* helper functions */
 static unsigned char* serialize_bvector(bm::serializer<bm::bvector<> >& bvs, 
@@ -35,33 +38,6 @@ static unsigned char* serialize_bvector(bm::serializer<bm::bvector<> >& bvs,
     return buf;
 }
 
-/* Overloaded Output Streams */
-
-ostream & operator<<(ostream &os, Graph &g) {
-	if (!g._groups.empty()) {
-		return (os << g.printQuery());
-	}
-	// for (unsigned int i = 0; i < g.Vsize(); ++i) {
-	// 	string sub = g.getNode(i).getName();
-	// 	for (auto &p : g._postt[i]) {
-	// 		for (unsigned int q = 0; q < p.second.size(); ++q)
-	// 			os << sub << " "
-	// 					<< g._Sigma[p.first]->str() << " "
-	// 					<< g.getNode(p.second[q]).getName() << " ." << endl;
-	// 	}
-	// }
-	for (unsigned int l = 0; l < g._Sigma.size(); ++l) {
-		vector<unsigned int> pairs = g._Sigma[l]->getPairs();
-		string pred = g._Sigma[l]->str();
-		for (unsigned int v = 0; v < pairs.size(); v += 2) {
-			os << g.getNode(pairs[v]) << " " 
-			   << pred << " " 
-			   << g.getNode(pairs[v+1]) << endl;
-		}
-	}
-	return os;
-}
-
 ostream & operator<<(ostream &os, const Node &n) {
 	return os << n._name;
 }
@@ -82,7 +58,7 @@ std::ostream & operator<<(std::ostream &os, SMatrix &a) {
     bvs.gap_length_serialization(false);
     bvs.set_compression_level(4);
 
-	for (auto &p : a._rows) {
+	for (auto &p : (*a._rows)) {
 		bm::bvector<> row = a.rowBV(p.first);
 		try {
 			buf = serialize_bvector(bvs,row);
@@ -128,11 +104,6 @@ std::ostream & operator<<(std::ostream &os, const bm::bvector<> &a) {
 	os << " ]";
 
 	return os;
-	// for (unsigned int i = 0; i < max; ++i) {
-	// 	// if (rowNull(i)) {
-	// 	// 	os << "[" << bm::bvector<>(_max) << "]" << endl;
-	// 	// }
-	// }
 }
 
 ostream & operator<<(ostream &os, QGSimulation &sim) {
@@ -153,21 +124,11 @@ ostream & operator<<(ostream &os, QGSimulation &sim) {
 		unsigned output = 15;
 
 		for (unsigned int s = 0; s < nodepairs.size(); s += 2) {
-			// cout << "checking nodes " << sim._db->getNode(nodepairs[s])
-			//      << " and " << sim._db->getNode(nodepairs[s+1]) << endl;
 			if (sim.isTriple(nodepairs[s], p, nodepairs[s+1])) {
-				// cout << "success" << endl;
-				count++;
-				if (step < count) {
-					cout << " " << output << "%";
-					step += cstep;
-					output += 15;
-				}
-
 				os << endl
-				   << sim._db->getNode(nodepairs[s]) << " "
+				   << sim._db->getNodeName(nodepairs[s]) << " "
 				   << p << " "
-				   << sim._db->getNode(nodepairs[s+1]) << " .";
+				   << sim._db->getNodeName(nodepairs[s+1]) << " .";
 			}
 		}
 	}
@@ -175,116 +136,10 @@ ostream & operator<<(ostream &os, QGSimulation &sim) {
 	return os;
 }
 
-/* Class specific output operations */
-
-string Graph::printGroup(unsigned int g) {
-	stringstream r;
-
-	if (_groups[g].empty())
-		return "";
-	r << "{";
-	for (Edge *e : _groups[g])
-		r << " " << *e;
-	r << " }";
-
-	return r.str();
-}
-
-string Graph::printQuery(unsigned int g) {
-	stringstream r;
-
-	if (!g) {
-		r << "SELECT * WHERE ";
-	}
-
-	if (_query[g].empty())
-		r << printGroup(g);
-
-	for (auto &x : _query[g]) {
-		switch (x.first) {
-			case GROUP: {
-				r << "{";
-				r << printQuery(x.second);
-				r << " }";
-				break;
-			}
-			case OPTIONAL: {
-				r << printGroup(g);
-				r << " OPTIONAL ";
-				r << printQuery(x.second);
-				break;
-			}
-			case JOIN: {
-				r << printGroup(g);
-				r << " ";
-				r << printQuery(x.second);
-				break;
-			}
-			case UNION: {
-				r << printGroup(g);
-				r << " UNION ";
-				r << printQuery(x.second);
-				break;
-			}
-			default:
-				r << printGroup(g);
-			  break;
-		}
-	}
-
-	return r.str();
-}
-
-// string Graph::printInsert(Simulation &sim, Graph &g) {
-// 	stringstream r;
-
-// 	assert(sim.max() == g.size());
-// 	for (unsigned int i = 0; i < sim.size(); ++i) {
-// 		for (unsigned int j = 0; j < g.size(); ++j) {
-// 			if (sim(i,j))
-// 				r << g.getNode(j).getName() << " <simulates> <sim_" << i << "> ." << endl;
-// 		}
-// 	}
-
-// 	return r.str();
-// }
-
-string Graph::report() {
-	stringstream res;
-
-	res << "|V|= " << Vsize() << endl;
-	res << "|\\Sigma|= " << _Sigma.size() << endl;
-	res << "|E|= " << _numTriples << endl;
-
-	// cout << "#redundancies= " << _redundancy << " (not part of the graph)" << endl;
-	return res.str();
-}
-
-// void Graph::print(const int i) {
-// 	assert(i < Vsize());
-// 	string sub = getNode(i).getName();
-// 	for (auto &p : _postt[i]) {
-// 		string lab = _Sigma[p.first]->str();
-// 		for (unsigned int q = 0; q < p.second.size(); ++q)
-// 			cout << sub << " "
-// 					 << lab << " "
-// 					 << getNode(p.second[q]).getName() << " ." << endl;
-// 	}
-// 	for (auto &p : _pree[i]) {
-// 		string lab = _Sigma[p.first]->str();
-// 		for (unsigned int q = 0; q < p.second.size(); ++q)
-// 			cout << sub << " "
-// 					 << lab << " "
-// 					 << getNode(p.second[q]).getName() << " ." << endl;
-// 	}
-// }
-
-string Graph::labelBitStrings() {
-	stringstream result;
-	for (Label *l : _Sigma) {
-		result << l->str() << "," << l->a().intcount() << endl;
-	}
-	return result.str();
+void Graph::report(ostream &os) const {
+	os << "      |V| = " << Vsize() << endl;
+	os << " |\\Sigma| = " << _Sigma.size() << endl;
+	os << "      |E| = " << Esize() << endl;
 }
 
 /*
@@ -301,6 +156,15 @@ void Graph::store(const string &dir) {
 	string prefix = dir;
 	if (prefix[prefix.size()-1] != '/')
 		prefix += '/';
+
+	f.open(prefix+"sparqlSim.conf");
+	f << "nodes:nodes" << endl
+	  << "nodenum:" << _nodes.size() << endl
+	  << "predicates:predicates" << endl
+	  << "predicatenum:" << _Sigma.size() << endl
+	  << "matrices:matrices" << endl
+	  << "triples:" << _numTriples << endl;
+	f.close();
 
 	// writing the nodes
 	f.open(prefix+"nodes");
@@ -325,16 +189,126 @@ void Graph::store(const string &dir) {
 
 	// writing adjacency matrices
 	stringstream num;
-	Label *l = 0;
-	for (unsigned i = 0; i < _Sigma.size(); ++i) {
-		num.str("");
-		l = _Sigma[i];
-		num << prefix << i;
-		ff.open(num.str());
-		if (!checkStream(num.str(), ff))
-			return;
-		ff << l->a();
-		ff.close();
+	f.open(prefix+"matrices");
+	for (Label *l : _Sigma) {
+		l->a().storeIn(f);
+	}
+	f.close();
+
+}
+
+void Graph::load(const string &dir) {
+	ifstream f;
+	string line;
+
+	size_t h; // hash values
+
+	config["prefix"] = dir;
+	if (config["prefix"][config["prefix"].size()-1] != '/')
+		config["prefix"] += '/';
+
+	f.open(config["prefix"]+"sparqlSim.conf");
+	while (getline(f,line)) {
+		unsigned split = line.find(':');
+		config[line.substr(0,split)] = line.substr(split+1);
+	}
+	f.close();
+
+	// cout << "prefix" << endl;
+
+	
+	// maximal number for progress bar
+	unsigned N = stoi(config["nodenum"]);
+	
+	// loading the nodes
+	f.open(config["prefix"]+config["nodes"]);
+	if (!checkStream(config["prefix"]+config["nodes"],f)) {
+		cerr << "error: make sure '" << config["prefix"] << "' exists" << endl;
+		return;
+	}
+	// Karla.initProgress(stoi(config["nodenum"]), 12);
+	while (getline(f,line)) {
+		// cout << "node '" << line << "'" << endl;
+		_Rnodes[strHash(line)] = _nodenum++;
+		// NEIGHBORS.push_back(bm::bvector<>(N));
+		/*if (!_nodenum % Karla.step()) {
+			Karla.updateProgress(_nodenum);
+		}*/
+	}
+	// Karla.finishProgress();
+	f.close();
+	// cout << "nodes" << endl;
+	// report(cout);
+
+	// loading and preparing the predicates
+	f.open(config["prefix"]+config["predicates"]);
+	if (!checkStream(config["prefix"]+config["predicates"],f)) {
+		cerr << "error: make sure '" << config["prefix"] << "' exists" << endl;
+		return;
+	}
+	while (getline(f,line)) {
+		h = strHash(line);
+		assert(_RSigma.find(h) == _RSigma.end());
+		_RSigma[h] = _Sigma.size();
+		_Sigma.push_back(new Label(_nodenum, line));
+		_Sigma.back()->a().loadMode();
+	}
+	f.close();
+
+
+	if (config.find("triples") != config.end() &&
+		config["triples"].size()) {
+		_numTriples = stoi(config["triples"]);
 	}
 
+	// loading adjacency matrices
+	f.open(config["prefix"]+config["matrices"]);
+	
+	unsigned last, next;
+	unsigned numrows;
+	unsigned p = 0;
+	while (getline(f,line)) {
+		next = line.find(':');
+
+		
+		numrows = stoi(line.substr(next+1));
+		while (numrows--) {
+			getline(f,line);
+			loadRow(p,line);
+		}
+
+		// _Sigma[p]->setAT(new SMatrix(_Sigma[p]->a(), true));
+		_Sigma[p]->makeFinal();
+		_Sigma[p]->optimize(stoi(config["nodenum"]));
+
+		++p;
+	}
+
+	f.close();
+
+	NEIGHBORS.optimize();
+}
+
+ostream &operator<<(ostream &os, const map<string, bm::bvector<> > &sim) {
+	const string vDelim = "||";
+	const string mDelim = "|";
+	const string pre = "# ";
+	const string post = " #";
+
+	unsigned first = 0;
+
+	for (auto &pair : sim) {
+		if (first++) {
+			os << vDelim;
+		}
+		unsigned p = pair.second.get_first();
+		if (p || pair.second.test(0)) {
+			os << pre << p << post;
+			while (p = pair.second.get_next(p)) {
+				os << mDelim << pre << p << post;
+			}
+		}
+	}
+
+	return os;
 }

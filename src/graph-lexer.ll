@@ -22,7 +22,6 @@
 %option prefix="graph_yy"
 %option noyywrap
 %option yylineno
-%option nounput
 
 %{
 #include <iostream>
@@ -39,14 +38,16 @@ using namespace std;
 extern int graph_yyerror(char const *msg);
 
 stringstream _literal, _iri;
+string _lit;
 %}
 
 whitespace		[ \n\r\t]+
 iri 			<[^<>]*>
 newline			[\n\r]
 identifier    [a-zA-Z][a-zA-Z0-9]*
+alphanum    [a-zA-Z0-9]+
 
-%x COMMENT STRING LITERAL SPECIAL
+%x COMMENT STRING LITERAL SPECIAL LIRI
 
 %%
 
@@ -58,30 +59,56 @@ identifier    [a-zA-Z][a-zA-Z0-9]*
 ;           { return SEMICOLON; }
 :           { return COLON; }
 
-\"					{ 
-						BEGIN(STRING); 
-						_literal.str(""); 
-						_literal << graph_yytext; 
-					}
+\" {
+	BEGIN(STRING); 
+	_literal << '\"';
+}
 
-<STRING>\"\.		{ BEGIN(INITIAL); _literal << "\""; return SLITERAL; }
-<STRING>\"			{ BEGIN(LITERAL); _literal << graph_yytext; }
-<STRING>\\			{ BEGIN(SPECIAL); _literal << graph_yytext; }
-<STRING>.			{ _literal << graph_yytext; }
+<STRING>\"		{
+  BEGIN(LITERAL); 
+  _literal << '\"'; 
+}
+<STRING>\\		{ BEGIN(SPECIAL); _literal << '\\'; }
+<SPECIAL>.    { BEGIN(STRING);  _literal << graph_yytext; }
 
-<SPECIAL>.			{ BEGIN(STRING); _literal << graph_yytext; }
+<STRING>.     { _literal << graph_yytext; }
 
+<LITERAL>\. {
+  _literal >> _lit;
+  _literal.str("");
+  _literal.clear();
 
-<LITERAL>[ \t]+  	{ BEGIN(INITIAL); return XLITERAL; }
-<LITERAL>.			{ _literal << graph_yytext; }
+  graph_yylval.str = strdup(_lit.c_str()); 
+  _lit = "";
+  
+  BEGIN(INITIAL);
+  unput('.'); 
+  return XLITERAL; 
+}
+<LITERAL>[ \t]+ { 
+  graph_yylval.str = strdup(_literal.str().c_str()); 
+  _literal.str(""); 
+  BEGIN(INITIAL); 
+  return XLITERAL;
+}
+<LITERAL>"<"  { 
+  BEGIN(LIRI); 
+  _literal << '<';
+}
+<LITERAL>.		{
+  _literal << graph_yytext;
+}
+
+<LIRI>">"   { BEGIN(LITERAL); _literal << '>'; }
+<LIRI>.     { _literal << graph_yytext; }
 
 \.					{ return TRIPLE_END; }
 
-{iri}				{ _iri << graph_yytext; return IRI; }
+{iri}				{ graph_yylval.str = strdup(graph_yytext); return IRI; }
 
 {whitespace}		{ /* do nothing */ }
 
-.					{ BEGIN(LITERAL); _literal << graph_yytext; }
+.					{ graph_yyerror("lexical error"); }
 
 %%
 
@@ -93,7 +120,6 @@ int graph_yyerror(char const *msg) {
     //exit(EXIT_FAILURE);
 
     _literal.str("");
-    _iri.str("");
 
     return 1;
 }

@@ -4,21 +4,20 @@
 #include "label.h"
 #include "utils.h"
 
-//#include <boost/iostreams/filtering_streambuf.hpp>
-//#include <boost/iostreams/copy.hpp>
-//#include <boost/iostreams/filter/gzip.hpp>
 #include <limits>
 
+#include <iomanip>
 #include <cstdio>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <array>
+#include <ctime>
 
 #include <map>
 
-//using namespace boost::iostreams;
+using namespace std;
 
 #define BATCH_SIZE 1000
 
@@ -77,11 +76,56 @@ void printInteractiveHelp() {
 	}
 }
 
+void printTime() {
+	time_t raw;
+	struct tm * timeinfo;
+
+	time(&raw);
+	timeinfo = localtime(&raw);
+	cout << endl << asctime(timeinfo) << endl;
+}
+
+void printTime(string &filename) {
+	time_t raw;
+	struct tm * timeinfo;
+
+	time(&raw);
+	timeinfo = localtime(&raw);
+
+	stringstream tmp;
+	tmp << "_" << setw(4) << setfill('0') << (1900 + timeinfo->tm_year) 
+	    << setw(2) << setfill('0') << (1 + timeinfo->tm_mon) 
+	    << setw(2) << setfill('0') << timeinfo->tm_mday 
+	    << setw(2) << setfill('0') << timeinfo->tm_hour
+	    << setw(2) << setfill('0') << timeinfo->tm_min;
+	filename += tmp.str();
+
+	cout << endl << asctime(timeinfo) << endl;
+}
+
 void printSettings() {
-	cout << "pruning output  .. " << (args_info.pruning_flag ? "on" : "off") << endl
-	     << "csv output      .. " << (args_info.csv_flag ? "on" : "off") << endl << endl
+	cout << endl;
+	cout << "output          .. " << (args_info.output_given ? "on" : "off") << " (";
+	switch (args_info.output_arg) {
+		output_arg_FILE:
+			cout << "FILE";
+			break;
+		output_arg_STDOUT:
+			cout << "STDOUT";
+			break;
+		output_arg_STDERR:
+			cout << "STDERR";
+			break;
+		output_arg_STDLOG:
+			cout << "STDLOG";
+			break;
+		default:
+			cout << " ";
+			break;
+	}
+	cout << ")" << endl;
+	cout << "csv output      .. " << (args_info.csv_flag ? "on" : "off") << endl << endl
 	     << "profile report  .. " << (args_info.profile_flag ? "on" : "off") << endl
-	     << "virtuoso output .. " << (args_info.virtuoso_flag ? "on" : "off") << endl
 	     << "verbose output  .. " << (args_info.verbose_flag ? "on" : "off") << endl << endl
 	     << "random order    .. " << (args_info.random_flag ? "on" : "off") << endl
 	     << "#iterations     .. ";

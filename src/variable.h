@@ -4,6 +4,7 @@
 #include "bm.h"
 #include "smatrix.h"
 
+#include <cassert>
 #include <map>
 #include <string>
 #include <vector>
@@ -14,6 +15,9 @@ using namespace std;
 
 class QGSimulation;
 
+typedef enum { AND, OPTIONAL } Dependency;
+
+
 class Variable {
 public:
 	// constructs new variable
@@ -22,6 +26,7 @@ public:
 	Variable(QGSimulation *sim, const string &varid, const bm::bvector<> &val, bool c = false);
 	~Variable();
 
+	Variable(QGSimulation &sim, Variable &v);
 	Variable(QGSimulation &sim, Variable &v, bm::bvector<> &ball);
 	Variable(QGSimulation &sim, Variable &v, bm::bvector<> &ball, bm::bvector<> &border);
 
@@ -36,9 +41,14 @@ public:
 	bool join(Variable &); // recomputes _val
 	bool join(const bm::bvector<> &); // 
 
-	bool subsumedBy(bm::bvector<> &);
+	const bool subsumedBy(const bm::bvector<> &);
+	const bool subsumedBy(const Variable &);
 
-	void update(bm::bvector<> &); // updates my value accordingly
+	bool update(Variable &); // updates my value accordingly
+	bool update(bm::bvector<> &); // updates my value accordingly
+	
+	void set(bm::bvector<> &); // sets the value
+	void set(bm::bvector<> &, bm::bvector<> &);
 	void null(); // sets _val to null
 
 	void propagate(); // propagates my changes to the slaves
@@ -78,6 +88,10 @@ public:
 		return _mandatory;
 	}
 
+	const bool isLeaf() const {
+		return (_equations.size() == 1);
+	}
+
 	// computing the degree of the variable
 	double degree() const;
 	double sdegree() const;
@@ -106,6 +120,30 @@ public:
 	const bool isSchedulable();
 	const bool isScheduled();
 
+	void addFriend(Variable *v) {
+		_group.push_back(v);
+	}
+
+	void addANDDependency(Variable *v) {
+		_deps[v] = AND;
+	}
+
+	void addOPTDependency(Variable *v) {
+		_deps[v] = OPTIONAL;
+	}
+
+	vector<Variable *> &group() {
+		return _group;
+	}
+
+	map<Variable *, Dependency> &dependencies() {
+		return _deps;
+	}
+
+	const bool footloose() const;
+
+	const bool compare(Variable &) const;
+
 private:
 	bm::bvector<> unifyMasters();
 	bm::bvector<> unifySlaves();
@@ -133,9 +171,13 @@ private:
 	vector<unsigned> _equations;
 	vector<unsigned> _coequations;
 
-
 	bool _const = false;
 	bool _isNull = false;
+
+	// the other variables of the group this variable occurs in
+	vector<Variable *> _group;
+
+	std::map<Variable *, Dependency> _deps;
 
 public:
 	void initRemoves();

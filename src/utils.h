@@ -5,6 +5,9 @@
 #include <fstream>
 #include <sstream>
 
+#include <map>
+#include <string>
+#include "bm.h"
 
 using namespace std;
 
@@ -25,6 +28,8 @@ bool checkStream(const string &fname, ofstream &f);
 
 void verbose(const string &msg);
 
+void printTime();
+void printTime(string &filename);
 void printSettings();
 
 #endif /* UTILS_H */

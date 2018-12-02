@@ -18,6 +18,13 @@ Variable::Variable(QGSimulation *sim, const string &varid, const bm::bvector<> &
 Variable::~Variable() {
 }
 
+Variable::Variable(QGSimulation &sim, Variable &v) :
+	_soi(&sim), _varid(v._varid), _mandatory(v._mandatory),
+	_changed(v._changed), _equations(v._equations),
+	_const(v._const), _isNull(v._isNull), _val(v._val)
+{
+}
+
 Variable::Variable(QGSimulation &sim, Variable &v, bm::bvector<> &ball) :
 	_soi(&sim), _varid(v._varid), _mandatory(v._mandatory),
 	_changed(v._changed), _equations(v._equations),
@@ -102,13 +109,45 @@ bool Variable::join(const bm::bvector<> &vec) {
 	return true;
 }
 
-void Variable::update(bm::bvector<> &vec) {
+bool Variable::update(Variable &other) {
+	return update(other.getVal());
+}
+
+bool Variable::update(bm::bvector<> &vec) {
 	if (_isNull)
-		return;
+		return false;
 	updVal();
-	if (join(vec)) {
+	if (join(vec) && !isLeaf()) {
 		propagate();
+		return true;
 	}
+	return false;
+}
+
+void Variable::set(bm::bvector<> &val) {
+	// _isNull = true;
+
+	_val = val;
+	propagate();
+}
+
+void Variable::set(bm::bvector<> &valsmall, bm::bvector<> &valbig) {
+	// _isNull = true;
+	// high_resolution_clock::time_point t1, t2;
+	// duration<double> time_span;
+	_val.reset();
+
+	// t1 = high_resolution_clock::now();
+	_val |= valsmall;
+	// t2 = high_resolution_clock::now();
+	// cout << duration_cast<duration<double> >(t2-t1).count() << ":";
+
+	// t1 = high_resolution_clock::now();
+	_val &= valbig;	
+	// t2 = high_resolution_clock::now();
+	// cout << duration_cast<duration<double> >(t2-t1).count() << ":";
+	// cout << endl;
+	propagate();
 }
 
 void Variable::null() {
@@ -131,14 +170,14 @@ void Variable::propagate() {
 	}
 }
 
-void Variable::fullPropagate() {
-	propagate();
+// void Variable::fullPropagate() {
+// 	propagate();
 
-	// tell the equations
-	for (unsigned eq: _equations) {
-		_soi->setUnstable(eq+1);
-	}
-}
+// 	// tell the equations
+// 	for (unsigned eq: _equations) {
+// 		_soi->setUnstable(eq+1);
+// 	}
+// }
 
 void Variable::changed(Variable &master) {
 	_changed[_rmasters[&master]] = true;
@@ -160,6 +199,12 @@ void Variable::operator<=(Variable &master) {
 	// cout << this <<  " <= " << &master << endl;
 	master.addSlave(*this);
 	addMaster(master);
+
+	for (unsigned i : _equations) {
+		for (unsigned j : master._equations) {
+			_soi->addTripleNeighbors(i/2,j/2);
+		}
+	}
 }
 
 void Variable::addEquation(const unsigned int idx, SMatrix *m) {
@@ -235,3 +280,35 @@ void Variable::initRemoves() {
 		// SMatrix::print(rem.second);
 	}
 }
+
+const bool Variable::subsumedBy(const bm::bvector<> &bv) {
+	unsigned p = _val.get_first();
+	if (!p && !_val.test(0))
+		return true;
+
+	do {
+		if (!bv.test(p))
+			return false;
+	} while (p = _val.get_next(p));
+
+	return true;
+}
+
+const bool Variable::subsumedBy(const Variable &v) {
+	return subsumedBy(v._val);
+}
+
+const bool Variable::footloose() const {
+	for (Variable *v : _group) {
+		for (Variable *m : v->_masters) {
+			if (v->compare(*m)) {
+				return true; 		
+			}			
+		}
+	}
+	return false;
+}
+
+const bool Variable::compare(Variable &other) const {
+	return _val.compare(other._val);
+} 

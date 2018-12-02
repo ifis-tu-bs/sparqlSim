@@ -26,14 +26,13 @@
 #include <string.h>
 #include <vector>
 
-
 #include "config.h"
 
 #include "cmdline-parser.h"
 
 #include "cmdline.h"
 #include "graph.h"
-#include "simulation.h"
+#include "simulations.h"
 #include "utils.h"
 #include "reporter.h"
 
@@ -61,6 +60,7 @@ std::map<std::string, std::string> prefixes;
 std::vector<std::string> files;
 
 extern gengetopt_args_info args_info;
+extern unsigned MOD;
 
 extern void loadDBFile(const string &filename);
 extern Reporter Karla;
@@ -73,15 +73,17 @@ CmdReturn cret;
 %token-table
 %defines
 
-%token KEY_PREFIX KEY_SELECT KEY_WHERE
+%token KEY_PREFIX KEY_SELECT KEY_ASK KEY_WHERE
 %token OP_JOIN OP_UNION OP_OPTIONAL
 %token COLON SEMICOLON TRIPLE_END VARIABLE_BEGIN ASTERISK
 %token LPAR RPAR IRI_BEGIN IRI_END IRI
-%token NUMBER IDENT VARIDENT WORDS
+%token NUMBER IDENT VARIDENT WORDS XLITERAL
 
 %token KEY_HELP KEY_LOAD KEY_IMPORT KEY_DATABASE KEY_PATTERN 
-%token KEY_STORE KEY_REPORT KEY_QUIT KEY_QUERY
-%token KEY_SET KEY_SETTINGS KEY_ITERATIONS KEY_PRUNING KEY_CSV KEY_PROFILE KEY_VIRTUOSO KEY_VERBOSE
+%token KEY_STORE KEY_REPORT KEY_QUIT KEY_QUERY KEY_CHECK
+%token KEY_SET KEY_SETTINGS KEY_ITERATIONS KEY_PRUNING 
+%token KEY_CSV KEY_PROFILE KEY_VIRTUOSO KEY_VERBOSE
+%token KEY_EVAL
 %token KEY_ON KEY_OFF
 
 %union {
@@ -96,6 +98,10 @@ CmdReturn cret;
 %type <str> variable
 %type <str> prefix
 %type <num> NUMBER
+%type <str> subject
+%type <str> predicate
+%type <str> object
+%type <str> XLITERAL
 
 %left OP_OPTIONAL
 
@@ -124,10 +130,6 @@ commands:
 settings:
   KEY_SET KEY_ITERATIONS NUMBER
   { args_info.iterations_arg = $3; printSettings(); }
-| KEY_SET KEY_PRUNING KEY_ON
-  { args_info.pruning_flag = true; printSettings(); }
-| KEY_SET KEY_PRUNING KEY_OFF
-  { args_info.pruning_flag = false; printSettings(); }
 | KEY_SET KEY_CSV KEY_ON
   { args_info.csv_flag = true; printSettings(); }
 | KEY_SET KEY_CSV KEY_OFF
@@ -136,10 +138,6 @@ settings:
   { args_info.profile_flag = true; printSettings(); }
 | KEY_SET KEY_PROFILE KEY_OFF
   { args_info.profile_flag = false; printSettings(); }
-| KEY_SET KEY_VIRTUOSO KEY_ON
-  { args_info.virtuoso_flag = true; printSettings(); }
-| KEY_SET KEY_VIRTUOSO KEY_OFF
-  { args_info.virtuoso_flag = false; printSettings(); }
 | KEY_SET KEY_VERBOSE KEY_ON
   { args_info.verbose_flag = true; printSettings(); }
 | KEY_SET KEY_VERBOSE KEY_OFF
@@ -196,16 +194,18 @@ command:
 ;
 
 prefix_decl:
-  KEY_PREFIX IDENT COLON IRI dotopt prefix_decl
+  prefix_decl dotopt KEY_PREFIX IDENT COLON IRI
   {
-    prefixes[$2] = $4;
+    //cout << "mapping " << $4 << " to " << $6 << endl;
+    prefixes[$4] = $6;
   }
 | /* empty production */
 ;
 
 prefix:
   IDENT COLON
-  { $$ = strdup(prefixes[$1].c_str()); }
+  { //cout << "query for " << $1 << ": " << prefixes[$1] << endl; 
+  $$ = strdup(prefixes[$1].c_str()); }
 ;
 
 dotopt:
@@ -216,10 +216,51 @@ dotopt:
 query:
   KEY_SELECT
   {
-    Q = new QGSimulation(*DB);
+    // dependent on args_info.eval
+    // cout << "MOD: " << MOD << " .. ";
+    switch (args_info.eval_arg[MOD]) {
+      case eval_arg_STRONG: {
+        // cout << "strong" << endl;
+        Q = new StrongSimulation(*DB);
+        break;
+      }
+      case eval_arg_CSTRONG: {
+        // cout << "centered" << endl;
+        Q = new CenteredStrongSimulation(*DB);
+        break;
+      }
+      case eval_arg_DUAL: {
+        // cout << "dual" << endl;
+        Q = new AllDS(*DB);
+        break;
+      }
+      case eval_arg_HHK: {
+        Q = new HHK(*DB);
+        break;
+      }
+      case eval_arg_MAETAL: {
+        Q = new MaEtAl(*DB);
+        break;
+      }
+      case eval_arg_MINDUAL:
+      case eval_arg_PRUNE:
+      default:
+        // cout << "prune" << endl;
+        Q = new QGSimulation(*DB);
+        break;
+    }
     Q->push();
   }
   projection KEY_WHERE LPAR pattern RPAR
+  {
+    Q->pop();
+  }
+| KEY_ASK
+  {
+    Q = new QGSimulation(*DB);
+    Q->push();
+  }
+  KEY_WHERE LPAR pattern RPAR
   {
     Q->pop();
   }
@@ -269,43 +310,59 @@ triples:
 ;
 
 triple:
-  variable prefix IDENT variable TRIPLE_END // prefix type
-  {
-    string pred = $2;
-    pred.insert(pred.size()-1, $3);
-    if (!DB->isLetter(pred)) {
-      Q->setEmpty(true);
-      cerr << "label '" << pred << "' is not in DB" << endl;
-      _yyerror("runtime error");
-    } else {
-      Q->addTriple($1, pred, $4);
-    }
-  }
-| variable IRI variable TRIPLE_END
+  subject predicate object TRIPLE_END
   { 
     if (!DB->isLetter($2)) {
       Q->setEmpty(true);
-      cerr << "label '" << $2 << "' is not in DB" << endl;
-      _yyerror("runtime error");
+      tmp.str("");
+      tmp << "runtime error: label '" << $2 << "' is not in DB";
+      return _yyerror(tmp.str().c_str());
     } else {
       Q->addTriple($1, $2, $3); 
     }
   }
 ;
 
+subject:
+  variable
+  { $$ = $1; }
+| IRI
+  { $$ = $1; }
+| prefix IDENT
+  { 
+    string pred = $1;
+    pred.insert(pred.size()-1,$2);
+    $$ = strdup(pred.c_str());
+  } 
+;
+
+predicate:
+  prefix IDENT
+  {
+    string pred = $1;
+    pred.insert(pred.size()-1,$2);
+    $$ = strdup(pred.c_str());
+  }
+| IRI
+  { $$ = $1; }
+
+object:
+  subject
+  { $$ = $1; }
+| XLITERAL
+  { $$ = $1; }
+;
+
 variable:
   VARIDENT
   { $$ = $1; }
-| IRI
-  {
-    $$ = $1;
-  }
-| prefix IDENT
-  {
-    string iri = $1;
-    iri.insert(iri.size()-1, $2);
-    $$ = strdup(iri.c_str());
-  }
+// | prefix IDENT
+//   {
+//     cout << "here" << endl;
+//     string iri = $1;
+//     iri.insert(iri.size()-1, $2);
+//     $$ = strdup(iri.c_str());
+//   }
 ;
 
 /* <<-- CHANGE END -->> */

@@ -1,3 +1,6 @@
+#ifndef REPORTER_H
+#define REPORTER_H 
+
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
@@ -6,6 +9,7 @@
 #include <string>
 #include <sstream>
 #include <unordered_map>
+#include <map>
 #include <vector>
 
 using namespace std;
@@ -14,101 +18,51 @@ using namespace std::chrono;
 class Reporter {
 
 public:
-	Reporter() {}
-	~Reporter() {}
+	/// Constructors & Destructors
+	Reporter();
+	~Reporter();
 
-	void start(const string &callee, const string &note = "") {
-		if (_report.find(callee) == _report.end()) {
-			_report[callee] = vector<std::pair<string, double> >();
-			_rstart[callee] = map<string, high_resolution_clock::time_point>();
-			_rend[callee] = map<string, high_resolution_clock::time_point>();
-		}
+	/// Timing Functions
+	void start(const string &callee, const string &note = "");
+	void end(const string &callee, const string &note = "");
 
-		// _report[callee][note] = 0.0;
-		_rstart[callee][note] = high_resolution_clock::now();
-	}
+	void note(const string &callee, const string &note, const string &val);
 
-	void end(const string &callee, const string &note = "") {
-		_rend[callee][note] = high_resolution_clock::now();
-		if (_rstart.find(callee) != _rstart.end()
-			&& _rstart[callee].find(note) != _rstart[callee].end()) {
-			duration<double> time_span =
-					duration_cast<duration<double> >(
-						_rend[callee][note]-_rstart[callee][note]);
-			_report[callee].push_back(std::pair<string,double>(note, time_span.count()));
-		}
-		_order.push_back(callee);
-	}
+	const unsigned int size() const;
 
-	void note(const string &callee, const string &note) {
-		_report[callee].push_back(std::pair<string,double>(note, -1.0));
-	}
+	void shout(const string &callee);
 
-	const unsigned int size() const { return _report.size(); }
+	string get(const string &callee, const string &note = "");
+	string getValue(const string &callee, const string &note = "");
 
-	void shout(const string &callee) {
-		_os 	<< "# Report: " << callee;
-		// if (_report[callee].first >= 0.0)
-		// 	_os << " [runtime: " << _report[callee][note] << " s]";
-		// if (note.size() > 0)
-		// 	_os << " (" << note << ")";
-		// _os << endl;
-	}
+	string getPretty(const string &callee, const string &note = "");
 
-	string get(const string &callee, const string &note = "") {
-		stringstream result;
-		if (_report[callee].empty())
-			return "";
-		result << callee << "," << _report[callee].back().second << "," << _report[callee].back().first << endl;
-		return result.str();
-	}
+	// double getDoubleValue(const string &callee, const string &note = "");
 
-	string getPretty(const string &callee, const string &note = "") {
-		stringstream result;
-		result << callee << "     " << _report[callee].back().second << " [" << note << "]" << endl;
-		return result.str();
-	}
+	void report();
 
-	double getDoubleValue(const string &callee, const string &note = "") {
-		return _report[callee].back().second;
-	}
+	/// Verbose output
+	Reporter & operator<<(const string & s);
+	Reporter & operator<<(const int & s);
+	void endline();
 
-	void report() {
-		_os << endl << "## Runtime Report ##" << endl;
-		for (auto & i : _report) {
-			for (auto & j : i.second) {
-				_os 	<< "# Report: " << i.first;
-				if (j.second >= 0.0)
-					_os << " [runtime: " << j.second << " s]";
-				if (j.first.size())
-					_os << " (" << j.first << ")";
-				_os << endl;
-			}
-		}
-		_os << "####################" << endl;
-	}
+	// Replaces the output stream
+	void operator()(std::ostream &os);
 
+	ostream &out();
 
-	Reporter & operator<<(const string & s) {
-		if (_verbose) {
-			_os << "# " << s;
-		}
-		return *this;
-	}
+	/// Progress Bar Capabilities
+	void initProgress(const unsigned &max, const unsigned &steps);
+	void printProgress(const unsigned val = 0);
+	void updateProgress(const unsigned val);
+	void updateProgressVal(const unsigned val);
+	void finishProgress();
 
-	Reporter & operator<<(const int & s) {
-		if (_verbose) {
-			_os << "# " << s;
-		}
-		return *this;
-	}
-
-	void operator()(const bool verbose) {
-		_verbose = verbose;
-	}
+	const unsigned step() const;
 
 private:
-	map<string, vector<std::pair<string, double> > > _report;
+	stringstream tmp;
+	map<string, vector<std::pair<string, string> > > _report;
 	map<string, map<string, high_resolution_clock::time_point> > _rstart;
 	map<string, map<string, high_resolution_clock::time_point> > _rend;
 
@@ -116,7 +70,14 @@ private:
 
 	unsigned int _counter = 0;
 
-	ostream &_os = cout;
-	bool _verbose = false;
+	bool _barPrinted = false;
+	unsigned _max;
+	unsigned short _steps; // granularity of steps (e.g. 4 => every 25%)
+	unsigned _step;
+	unsigned short _progress;
+
+	ostream *_os;
 
 };
+
+#endif /* REPORTER_H */

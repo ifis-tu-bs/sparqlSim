@@ -23,7 +23,6 @@
 %option noyywrap
 %option yylineno
 %option nodefault
-%option nounput
 
 %{
 #include <iostream>
@@ -37,16 +36,18 @@ using namespace std;
 #include "cmdline-parser.hh"
 #include "config.h"
 
+extern std::stringstream _literal;
+
 extern int _yyerror(char const *msg);
 %}
 
 whitespace		[\n\r\t ]+
 iri 					<[^<>]*>
-ident					[^{}?*:<>\n\r\t ]+
+ident					[_a-zA-Z0-9]+
 newline				[\n\r]
 number			[1-9][0-9]*
 
-%x COMMENT
+%x COMMENT LITERAL SPECIAL SUFFIX
 
 %%
 
@@ -54,9 +55,39 @@ number			[1-9][0-9]*
 <COMMENT>{newline}	{ BEGIN(INITIAL); }
 <COMMENT>.				{ /* nothing happens, everything ignored */ }
 
-PREFIX|prefix|@prefix|@PREFIX      	{ return KEY_PREFIX; }
-SELECT|select				{ return KEY_SELECT; }
-WHERE					{ return KEY_WHERE; }
+\" { 
+	BEGIN(LITERAL); 
+	_literal << _yytext;
+}
+<LITERAL>\\				{ BEGIN(SPECIAL); _literal << _yytext; }
+<SPECIAL>.				{ BEGIN(LITERAL); _literal << _yytext; }
+<LITERAL>\"			{ BEGIN(SUFFIX); _literal << _yytext; }
+<SUFFIX>{iri}			{ _literal << _yytext; }
+<SUFFIX>"."			{ BEGIN(INITIAL);
+							_yylval.str = strdup(_literal.str().c_str());
+							_literal.str("");
+							unput('.');
+						  	return XLITERAL;
+						}
+<SUFFIX>[ \t]			{ BEGIN(INITIAL);
+						  _yylval.str = strdup(_literal.str().c_str());
+						  return XLITERAL;
+						}
+<LITERAL>.				{ _literal << _yytext; }
+<SUFFIX>.				{ _literal << _yytext; }
+
+PREFIX|prefix|@prefix|@PREFIX {
+	return KEY_PREFIX; 
+}
+SELECT|select { 
+	return KEY_SELECT; 
+}
+ASK|ask {
+	return KEY_ASK;
+}
+WHERE { 
+	return KEY_WHERE; 
+}
 
 AND 					{ return OP_JOIN; }
 UNION					{ return OP_UNION; }
@@ -81,15 +112,19 @@ OPTIONAL			{ return OP_OPTIONAL; }
 "QUIT"|"quit"|"EXIT"|"exit"	{ return KEY_QUIT; }
 "QUERY"|"query"	{ return KEY_QUERY; }
 
+"CHECK"|"check" { return KEY_CHECK; }
+
 "SET"|"set"		{ return KEY_SET; }
+"ON"|"on" { return KEY_ON; }
+"OFF"|"off" { return KEY_OFF; }
+
 "SETTINGS"|"settings"	{ return KEY_SETTINGS; }
 "ITERATIONS"|"iterations" { return KEY_ITERATIONS; }
 "PRUNING"|"pruning" { return KEY_PRUNING; }
 "PROFILE"|"profile" { return KEY_PROFILE; }
 "VIRTUOSO"|"virtuoso" { return KEY_VIRTUOSO; }
 "CSV"|"csv" { return KEY_CSV; }
-"ON"|"on" { return KEY_ON; }
-"OFF"|"off" { return KEY_OFF; }
+"EVAL"|"eval" { return KEY_EVAL; }
 
 "?"{ident}      { _yylval.str = strdup(_yytext); return VARIDENT; }
 {number}		{ _yylval.num = stoi(_yytext); return NUMBER; }

@@ -7,16 +7,30 @@
 #include <fstream>
 #include <queue>
 #include <bitset>
+#include <string>
+
+// multi-threading
+#include <functional>
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
-#include "edge.h"
 #include "node.h"
 #include "label.h"
+#include "smatrix.h"
 #include "reporter.h"
 
+#include "simulations.h"
+
 extern Reporter Karla;
+
+#include "cmdline.h"
+extern gengetopt_args_info args_info;
 // external graph database
+
+/// STATIC VARIABLES
+
 
 // Standard constructur & destructor
 Graph::Graph() {
@@ -33,312 +47,49 @@ Graph::~Graph() {
 	// nothing is deleted due to the reuse of the stored pointers
 }
 
-// This method creates the ball around w with distance dq
-// Graph::Graph(Graph &g, const unsigned int w, const unsigned int dq) {
-// 	// 1. Init bfs
-// 	queue<unsigned int> q;
-// 	q.push(w);
+//////////////////////
+/// Adder & Getter ///
+//////////////////////
 
-// 	unsigned int d = dq;
-// 	// unordered_set<Edge *> edges;
-
-// 	// 2. As long as distance not exceeded, add neighbors
-// 	while (d-- > 0) {
-// 		queue<unsigned int> newq;
-// 		while (!q.empty()) {
-// 			unsigned int current = q.front();
-// 			addNode(g(current));
-// 			string n = g(current).getName();
-// 			q.pop();
-// 			for (auto &e : g._pree[current]) {
-// 				for (auto &nnid : e.second) {
-// 					string nn = g.getNode(nnid).getName();
-// 					if (!existsNode(nn)) {
-// 						newq.push(g._rnodes[nn]);
-// 					}
-// 					else {
-// 						addTriple(nn, _Sigma[e.first]->str(), n);
-// 					}
-// 				}
-// 			}
-// 			for (auto &e : g._postt[current]) {
-// 				for (auto &nnid : e.second) {
-// 					string nn = g.getNode(nnid).getName();
-// 					if (!existsNode(nn)) {
-// 						newq.push(g._rnodes[nn]);
-// 					}
-// 					else {
-// 						addTriple(n, _Sigma[e.first]->str(), nn);
-// 					}
-// 				}
-// 			}
-// 		}
-// 		q = newq;
-// 	}
-// }
-
-// Extract Graph from sim
-// Graph::Graph(Graph &g, Graph &q, Simulation &sim) {
-// 	// add all sim-relevant nodes to the graph
-// 	for (int u = 0; u < q.size(); ++u) {
-// 		for (unsigned int v = 0; v < g.size(); ++v) {
-// 			// check whether v simulates u
-// 			if (!sim(u,v))
-// 				continue;
-// 			// Add node v if necessary
-// 			string n = g(v).getName();
-// 			addNode(n);
-// 			// add relevant edges to temporary set
-// 			for (auto &eu : q._pree[u]) {
-// 				string l = q._Sigma[eu.first]->str(); // label of eu
-// 				unsigned int lid = g._rSigma[l];
-// 				for (unsigned int uu = 0; uu < eu.second.size(); ++uu)
-// 					for (unsigned int vv = 0; vv < g._pree[v][lid].size(); ++vv) {
-// 						string nn = g.getNode(g._pree[v][lid][vv]).getName();
-// 						if (existsNode(nn)
-// 							&& sim(eu.second[uu], g._pree[v][lid][vv])) {
-// 							addTriple(nn, l, n);
-// 						}
-// 					}
-// 			}
-// 			for (auto &eu : q._postt[u]) {
-// 				string l = q._Sigma[eu.first]->str(); // label of eu
-// 				unsigned int lid = g._rSigma[l]; // id of label in g
-// 				for (unsigned int uu = 0; uu < eu.second.size(); ++uu)
-// 					for (unsigned int vv = 0; vv < g._postt[v][lid].size(); ++vv) {
-// 						string nn = g.getNode(g._postt[v][lid][vv]).getName();
-// 						if (existsNode(nn)
-// 							&& sim(eu.second[uu], g._postt[v][lid][vv])) {
-// 							addTriple(n, l, nn);
-// 						}
-// 					}
-// 			}
-// 		}
-// 	}
-// }
-
-// pair<unsigned int, unsigned int> Graph::pruning(ofstream &os, Graph &q, Simulation &sim) {
-// 	pair<unsigned int, unsigned int> result(0,0);
-
-// 		// add all sim-relevant nodes to the graph
-// 	for (int u = 0; u < q.size(); ++u) {
-// 		for (unsigned int v = 0; v < size(); ++v) {
-// 			// check whether v simulates u
-// 			if (!sim(u,v))
-// 				continue;
-// 			// Add node v if necessary
-// 			string n = _nodes[v]->getName();
-// 			result.first++;
-// 			// addNode(n);
-// 			// add relevant edges to temporary set
-// 			for (auto &eu : q._pree[u]) {
-// 				string l = q._Sigma[eu.first]->str(); // label of eu
-// 				unsigned int lid = _rSigma[l];
-// 				for (unsigned int uu = 0; uu < eu.second.size(); ++uu)
-// 					for (unsigned int vv = 0; vv < _pree[v][lid].size(); ++vv) {
-// 						string nn = getNode(_pree[v][lid][vv]).getName();
-// 						if (sim(eu.second[uu], _pree[v][lid][vv])) {
-// 							os << nn << " " << l << " " << n << " ." << endl;
-// 							result.second++;
-// 						}
-// 					}
-// 			}
-// 			// for (auto &eu : q._postt[u]) {
-// 			// 	string l = q._Sigma[eu.first]->str(); // label of eu
-// 			// 	unsigned int lid = g._rSigma[l]; // id of label in g
-// 			// 	for (unsigned int uu = 0; uu < eu.second.size(); ++uu)
-// 			// 		for (unsigned int vv = 0; vv < g._postt[v][lid].size(); ++vv) {
-// 			// 			string nn = g.getNode(g._postt[v][lid][vv]).getName();
-// 			// 			if (existsNode(nn)
-// 			// 				&& sim(eu.second[uu], g._postt[v][lid][vv])) {
-// 			// 				addTriple(n, l, nn);
-// 			// 			}
-// 			// 		}
-// 			// }
-// 		}
-// 	}
-// 	return result;
-// }
-
-// pair<unsigned int, unsigned int> Graph::pruning(Graph &q, Simulation &sim) {
-// 	pair<unsigned int, unsigned int> result(0,0);
-
-// 		// add all sim-relevant nodes to the graph
-// 	for (int u = 0; u < q.size(); ++u) {
-// 		for (unsigned int v = 0; v < size(); ++v) {
-// 			// check whether v simulates u
-// 			if (!sim(u,v))
-// 				continue;
-// 			// Add node v if necessary
-// 			string n = _nodes[v]->getName();
-// 			result.first++;
-// 			// addNode(n);
-// 			// add relevant edges to temporary set
-// 			for (auto &eu : q._pree[u]) {
-// 				string l = q._Sigma[eu.first]->str(); // label of eu
-// 				unsigned int lid = _rSigma[l];
-// 				for (unsigned int uu = 0; uu < eu.second.size(); ++uu)
-// 					for (unsigned int vv = 0; vv < _pree[v][lid].size(); ++vv) {
-// 						string nn = getNode(_pree[v][lid][vv]).getName();
-// 						if (sim(eu.second[uu], _pree[v][lid][vv])) {
-// 							// os << nn << " " << l << " " << n << " ." << endl;
-// 							result.second++;
-// 						}
-// 					}
-// 			}
-// 			// for (auto &eu : q._postt[u]) {
-// 			// 	string l = q._Sigma[eu.first]->str(); // label of eu
-// 			// 	unsigned int lid = g._rSigma[l]; // id of label in g
-// 			// 	for (unsigned int uu = 0; uu < eu.second.size(); ++uu)
-// 			// 		for (unsigned int vv = 0; vv < g._postt[v][lid].size(); ++vv) {
-// 			// 			string nn = g.getNode(g._postt[v][lid][vv]).getName();
-// 			// 			if (existsNode(nn)
-// 			// 				&& sim(eu.second[uu], g._postt[v][lid][vv])) {
-// 			// 				addTriple(n, l, nn);
-// 			// 			}
-// 			// 		}
-// 			// }
-// 		}
-// 	}
-// 	return result;
-// }
-
-Graph::Graph(Graph &g, const unsigned int w) {
-	cerr << "BFS Graph Constructor not implemented" << endl;
-	// // 1. Init bfs
-	// queue<unsigned int> q;
-	// q.push(w);
-
-	// unordered_set<Edge *> edges;
-
-	// // 2. As long as distance not exceeded, add neighbors
-	// while (!q.empty()) {
-	// 	unsigned int current = q.front();
-	// 	addNode(g(current));
-	// 	q.pop();
-	// 	for (Edge *e : g._inc[current]) {
-	// 		edges.insert(e);
-	// 		Node &neighbor = (*e)(g(current));
-	// 		if (!existsNode(neighbor.getName()))
-	// 			q.push(g._rnodes[neighbor.getName()]);
-	// 	}
-	// }
-
-	// for (Edge *e : edges) {
-	// 	addTriple(e->source().getName(), e->label(), e->target().getName());
-	// }
-}
-
-// initializing sim to only relevant nodes
-void Graph::reduce(Graph &g, Simulation &sim) {
-	cerr << "Graph::reduce is currently not implemented" << endl;
-	// Graph &sub = *(new Graph());
-	// sim.initialize0(g.size(), size());
-	// for (Label *l : g._Sigma) {
-	// 	if (!isLabel(l->str()))
-	// 		continue;
-	// 	for (Edge *e : edgesByLabel(*l)) {
-	// 		// sub.addNode(e->source().getName());
-	// 		// sub.addNode(e->target().getName());
-	// 		// sub.addLabel(e->label());
-
-	// 		// sub.addTriple(e);
-	// 		for (unsigned int u = 0; u < sim.size(); ++u) {
-	// 			sim.setAll(getIndex(e->source()));
-	// 			sim.setAll(getIndex(e->target()));
-	// 		}
-	// 	}
-	// }
-	// return sub;
-}
-
-// returns a minimal graph wrt. sim
-// must be called with a self-simulation
-Graph & Graph::operator[](Simulation &sim) {
-	assert(sim.size()==size());
-	Graph &min = *(new Graph());
-	cerr << "Graph::min() not implemented" << endl;
-	// unsigned int idx;
-	// for (unsigned int i = 0; i < size(); ++i) {
-	// 	if (min.existsNode(_nodes[i]->getName()))
-	// 		continue;
-	// 	idx = min.addNode(*_nodes[i]);
-	// 	for (unsigned int j = sim.init(i); j < sim.max(); j = sim.next(i)) {
-	// 		if (sim(j,i)) {
-	// 			min._rnodes[_nodes[j]->getName()] = idx;
-	// 		}
-	// 	}
-	// }
-	// for (unsigned int i = 0; i < Vsize(); ++i) {
-	// 	string sub = getNode(i).getName();
-	// 	for (auto &p : _postt[i]) {
-	// 		min.addTriple(sub, _Sigma[p.first]->str(), getNode(p.second).getName());
-	// 	}
-	// }
-
-	return min;
-}
-
-unsigned int Graph::addNode(const string &name) {
+const unsigned int Graph::addNode(const string &name) {
 	if (!existsNode(name)) {
-		// cout << "add node '" << name << "'" << endl;
 		_rnodes[name] = _nodes.size();
+
 		_nodes.push_back(new Node(name));
-		// edgesInit();
+		// NEIGHBORS.push_back(bm::bvector<>());
 	}
 
 	return _rnodes[name];
 }
 
-unsigned int Graph::addNode(Node &n) {
-	if (!existsNode(n.getName())) {
-		_rnodes[n.getName()] = _nodes.size();
-		_nodes.push_back(&n);
-		// edgesInit();
-	}
+const string Graph::getNodeName(const unsigned idx) const {
+	if (_nodes.size())
+		return _nodes[idx]->str();
 
-	return _rnodes[n.getName()];
+	return to_string(idx);
 }
 
-// void Graph::edgesInit() {
-	// _pre.push_back(set<unsigned int>());
-	// _pre.push_back(set<Edge *>());
-	// _pree.push_back(map<unsigned int, vector<unsigned int> >());
-	// _pree.push_back(multimap<unsigned int, unsigned int>());
-	// _pre.push_back(unordered_set<Edge *>());
-	// _post.push_back(set<unsigned int>());
-	// _post.push_back(set<Edge *>());
-	// _postt.push_back(map<unsigned int, vector<unsigned int> >());
-	// _postt.push_back(multimap<unsigned int, unsigned int>());
-	// _post.push_back(unordered_set<Edge *>());
-	// assert(_pre.size() == _post.size());
-// }
-
-Node &Graph::getNode(const unsigned int idx) {
-	assert(idx < size());
-	return *_nodes[idx];
+const unsigned Graph::rnodes(const string &name) {
+	if (_rnodes.size())
+		return _rnodes[name];
+	return _Rnodes[strHash(name)];
 }
 
-Node &Graph::getNode(const string &name) {
-	assert(existsNode(name));
-	return *_nodes[_rnodes[name]];
+const unsigned int Graph::getNodeIndex(const string &name) {
+	return rnodes(name);
 }
 
-unsigned int Graph::getIndex(Node &n) {
-	return _rnodes[n.getName()];
+const bool Graph::existsNode(const string &name) {
+	return (_Rnodes.find(strHash(name)) != _Rnodes.end() || _rnodes.find(name) != _rnodes.end());
 }
 
-unsigned int Graph::getIndex(const string &name) {
-	return _rnodes[name];
-}
-
-bool Graph::existsNode(const string &name) const {
-	return _rnodes.find(name) != _rnodes.end();
+const bool Graph::isNode(const string &name) {
+	return existsNode(name);
 }
 
 //// Label Methods
 
-unsigned int Graph::addLabel(const string &label) {
+const unsigned int Graph::addLabel(const string &label) {
 	if (!isLabel(label)) {
 		// cout << "add label '" << label << "'" << endl;
 		Label *l = new Label(label);
@@ -350,20 +101,10 @@ unsigned int Graph::addLabel(const string &label) {
 	return _rSigma[label];
 }
 
-unsigned int Graph::addLabel(Label &l) {
-	if (!isLabel(l.str())) {
-		_rSigma[l.str()] = _Sigma.size();
-		_Sigma.push_back(&l);
-		// _edgesMap.push_back(set<Edge *>());
-		// _edgesMap.push_back(unordered_set<Edge *>());
-	}
-	return _rSigma[l.str()];
-}
-
 const bool Graph::isLabel(const string &l) {
 	//for (auto &e: _rSigma) cout << e.first << endl;
 	//cout << "checking " << l << endl;
-	return _rSigma.find(l) != _rSigma.end();
+	return (_RSigma.find(strHash(l)) != _RSigma.end() || _rSigma.find(l) != _rSigma.end());
 }
 
 const bool Graph::isLetter(const string &l) {
@@ -377,31 +118,16 @@ Label &Graph::getLabel(unsigned int idx) {
 }
 
 Label &Graph::getLabel(const string &name) {
-	return getLabel(_rSigma[name]);
+	return getLabel(rSigma(name));
 }
 
-void Graph::updateLabels() {
-	unsigned int n = size();
-	for (unsigned int i = 0; i < _Sigma.size(); ++i)
-		_Sigma[i]->updateMatrices(n);
+const unsigned Graph::rSigma(const string &name) {
+	if (_rSigma.size())
+		return _rSigma[name];
+	return _RSigma[strHash(name)];
 }
-
-// set<Edge *> & Graph::edgesByLabel(const string &lstr) {
-// 	return _edgesMap[_rSigma[lstr]];
-// }
-
-// set<Edge *> & Graph::edgesByLabel(const Label &l) {
-// 	return edgesByLabel(l.str());
-// }
 
 //// TRIPLE METHODS ////
-
-// void Graph::resizeEdges() {
-// 	unsigned int N = size();
-// 	for (unsigned int i = 0; i < _Sigma.size(); ++i) {
-// 		_Sigma[i]->resize(N);
-// 	}
-// }
 
 void Graph::compress() {
 	for (unsigned int i = 0; i < _Sigma.size(); ++i) {
@@ -410,83 +136,24 @@ void Graph::compress() {
 	// clearNodes();
 }
 
-void Graph::clearNodes() {
-	for (unsigned int i = 0; i < _nodes.size(); ++i) {
-		delete _nodes[i];
-	}
-}
-
 void Graph::addTriple(const string &sub, const string &pre, const string &obj) {
+	if (args_info.quota_arg > 0 && _numTriples >= args_info.quota_arg)
+		return;
+
 	unsigned int s = addNode(sub);
 	unsigned int p = addLabel(pre);
 	unsigned int o = addNode(obj);
 
+	// setting neighborhoods
+	// NEIGHBORS[s].set(o);
+	// NEIGHBORS[o].set(s);
+	addNeighbors(s,o);
+
 	if (!(*_Sigma[p])(s, o)) {
 		_Sigma[p]->set(s, o);
 		++_numTriples;
-		// if (_numTriples % 10000000 == 0)
-		// 	cout << _numTriples << " triples added" << endl;
-	}
-
-	if (!_groups.empty()) { // if a query is parsed
-		Edge *triple = new Edge(_nodes[s], _Sigma[p], _nodes[o]);
-		top().insert(triple);
 	}
 }
-
-void Graph::printLabels() {
-	for (unsigned int i = 0; i < size(); ++i) {
-		cout << " " << *_nodes[i];
-	}
-	cout << endl;
-	for (unsigned int i = 0; i < _Sigma.size(); ++i)
-		cout << *_Sigma[i] << endl;
-}
-
-// void Graph::addTriple(Edge *e) {
-// 	// assert(existsNode(e->source().getName()) && existsNode(e->target().getName()) && isLabel(e->label().str()));
-
-// 	_post[_rnodes[e->source().getName()]].insert(e);
-// 	_pre[_rnodes[e->target().getName()]].insert(e);
-
-// 	// _edges.push_back(e);
-
-// 	// _edgesMap[_rSigma[e->label().str()]].insert(e);
-// }
-
-// vector<unsigned int> Graph::getSources(const unsigned int q, const string &l) {
-// 	assert(q < size());
-
-// 	vector<unsigned int> result;
-// 	// comute intersection
-// 	set<Edge *> prel;
-// 	set_intersection(_pre[q].begin(), _pre[q].end(), _edgesMap[_rSigma[l]].begin(), _edgesMap[_rSigma[l]].end(), std::inserter(prel, prel.begin()));
-
-// 	// Node &nq = getNode(q);
-// 	for (Edge *e : prel) {
-// 		// if (e->label() == l)
-// 			result.push_back(getIndex(e->target()));
-// 	}
-
-// 	return result;
-// }
-
-// vector<unsigned int> Graph::getTargets(const unsigned int q, const string &l) {
-// 	assert(q < size());
-
-// 	vector<unsigned int> result;
-// 	// compute the intersection of post[q] and edgesMap[l]
-// 	set<Edge *> postl;
-// 	set_intersection(_post[q].begin(), _post[q].end(), _edgesMap[_rSigma[l]].begin(), _edgesMap[_rSigma[l]].end(), std::inserter(postl, postl.begin()));
-
-// 	// Node &nq = getNode(q);
-// 	for (Edge *e : postl) {
-// 		// if (e->label() == l)
-// 			result.push_back(getIndex(e->target()));
-// 	}
-
-// 	return result;
-// }
 
 //// Query Methods
 
@@ -535,13 +202,12 @@ int Graph::distance(const unsigned int v1, const unsigned int v2) {
 }
 
 int Graph::diameter() {
+	cout << "Function Graph::diameter() NOT IMPLEMENTED" << endl;
 	int result = 0;
 	int d;
 	for (int i = 0; i < size(); ++i) {
 		for (int j = i+1; j < size(); ++j) {
-			// cout << "  distance between " << getNode(i).getName() << " and " << getNode(j).getName();
 			d = distance(i,j);
-			// cout << " = " << d << endl;
 			if (d < 0)
 				return d;
 			result = (d > result ? d : result);
@@ -551,71 +217,313 @@ int Graph::diameter() {
 	return result;
 }
 
-unsigned int Graph::Esize() {
-	// unsigned int size = 0;
-	// // cout << *this << endl;
-	// // cout << size << endl;
-	// for (unsigned int i = 0; i < Vsize(); ++i)
-	// 	for (auto &e : _pree[i])
-	// 		size += e.second.size();
-	// // cout << size << endl;
-	// return size;
+/////////////////
+/// Size Info ///
+/////////////////
+
+// returns size of the node set
+const unsigned Graph::size() const {
+	return Vsize();
+}
+
+// returns size of the node set
+const unsigned Graph::Vsize() const {
+	return ( _nodes.size() ? _nodes.size() : _nodenum ); 
+}
+
+// returns size of the edge set
+const unsigned Graph::Esize() const {
+	// if (!_numTriples) {
+	// 	for (Label *l : _Sigma) {
+	// 		_numTriples += l->countTriples();
+	// 	}
+	// }
 	return _numTriples;
 }
 
-void Graph::memfree() {
-	for (Node *n : _nodes) {
-		delete n;
-	}
-	_nodes.clear();
-	_rnodes.clear();
-	_rSigma.clear();
-	for (Label *l : _Sigma) {
-		l->nostr();
+// returns the size of the label set
+const unsigned Graph::Ssize() const { 
+	return _Sigma.size(); 
+}
+
+//////////////////////////////////////////
+///              The Dummy Node 	   ///
+/// ---------------------------------- ///
+/// This node is meant for output only ///
+//////////////////////////////////////////
+
+// the node
+Node &Graph::_dummy = *(new Node());
+
+// sets the name to be the index and returns the node
+const Node &Graph::dummy(const unsigned idx) {
+	Graph::_dummy.setName(to_string(idx));
+	return Graph::_dummy;
+}
+
+// sets the name to be the index and returns the node
+const Node &Graph::dummy(const string &name) {
+	Graph::_dummy.setName(name);
+	return Graph::_dummy;
+}
+
+//StrongSim 
+
+void Graph::increaseDiameter(bm::bvector<> &ball, bm::bvector<> &border, std::vector<std::set<SMatrix *> > &spheres, const unsigned rad) {
+	static bm::bvector<> borderX(size());
+	
+	// assert(rad == spheres.size());
+
+	for (unsigned r = 0; r < rad; ++r) {
+		borderX.reset();
+		// bm::bvector<> w = cut;
+		// bm::bvector<> wX = in;
+		unsigned int s = border.get_first();
+		if (!s && !border.test(0)) {
+			return;
+		}
+		// // std::vector< std::set<SMatrix *>> *Edges = &allEdges[c];
+		// cout << "before pointer" << endl;
+		// std::set<SMatrix *> &sphere = allEdges[c][radius];
+		// cout << "after pointer" << endl;
+		
+		do {
+			for (auto &ite: spheres[r]) {
+				// cout << (ite != NULL ? "not null" : "null") << endl;
+				// cout.flush();
+				ite->updateNeighbors(s, borderX, ball);
+				// cout << "nothing wrong" << endl;
+				// cout.flush();
+			}
+		} while (s=border.get_next(s));
+
+		border.swap(borderX);
 	}
 }
 
-string Graph::sizeOf() {
-	uint64_t size;
-	stringstream s;
+void Graph::increaseDiameter(bm::bvector<> &ball, bm::bvector<> &border, std::set<SMatrix *> &sphere, const unsigned rad) {
+	static bm::bvector<> borderX(size());
+	
+	// assert(rad == spheres.size());
 
-	for (Node *n : _nodes) {
-		size += n->sizeOf();
+	for (unsigned r = 0; r < rad; ++r) {
+		borderX.reset();
+		// bm::bvector<> w = cut;
+		// bm::bvector<> wX = in;
+		unsigned int s = border.get_first();
+		if (!s && !border.test(0)) {
+			return;
+		}
+		// // std::vector< std::set<SMatrix *>> *Edges = &allEdges[c];
+		// cout << "before pointer" << endl;
+		// std::set<SMatrix *> &sphere = allEdges[c][radius];
+		// cout << "after pointer" << endl;
+		
+		do {
+			for (auto &ite: sphere) {
+				// cout << (ite != NULL ? "not null" : "null") << endl;
+				// cout.flush();
+				ite->updateNeighbors(s, borderX, ball);
+				// cout << "nothing wrong" << endl;
+				// cout.flush();
+			}
+		} while (s=border.get_next(s));
+
+		border.swap(borderX);
 	}
-	s << "============================" << endl;
-	s << "  size of node set:         " << size << endl;
-	size += sizeof(Node *) * _nodes.size();
-	s << "  size of pointers:         " << sizeof(Node *) * _nodes.size() << endl;
-
-	uint64_t rnset = sizeof(unordered_map<string,unsigned>)
-						+ _rnodes.size() * sizeof(unsigned);
-	// for (auto &e : _rnodes) {
-	// 	rnset +=  sizeof(unsigned);
-	// }
-	s << "  size of reverse node set: " << rnset << endl;
-	size += rnset;
-
-	uint64_t lsize = 0;
-	unsigned csize = 0;
-	s << "----------------------------" << endl;
-	for (Label *l : _Sigma) {
-		s << l->sizeOf(csize) << endl;
-		lsize += csize;
-	}
-	s << "----------------------------" << endl;
-	size += lsize;
-	s << "  size of \\Sigma:          " << lsize << endl;
-	size += sizeof(Label *) * _Sigma.size();
-	s << "  size of pointers:         " << sizeof(Label *) * _Sigma.size();
-	rnset = sizeof(map<string,unsigned>)
-			+ _rSigma.size() * sizeof(unsigned);
-	// for (auto &e : _rSigma) {
-	// 	rnset += e.first.size() * sizeof(char) + sizeof(string)/2 + sizeof(unsigned);
-	// }
-	s << "  size of reverse \\Sigma:  " << rnset << endl;
-	size += rnset;
-	s << "  overall size:             " << size << endl;
-	s << "============================" << endl;
-
-	return s.str();
 }
+
+// bm::bvector<> Graph::increaseDiameter( bm::bvector<> in, bm::bvector<> cut) {
+	
+// 	bm::bvector<> w = cut;//leer wird nicht mehr in rowbv benutzt
+// 	bm::bvector<> wX = in;
+// 	unsigned int r = in.get_first();
+
+// 	//cout << "IN = " << wX << ", r= "<< r << endl;
+
+// 	//cout << "Old: " <<  wX << endl;
+// 	do {
+		
+// 		for (auto &ite:  _Sigma){
+// 			//cout << "ite: " << ite->str() << endl;
+// 			ite->a().rowbv(w,wX,r);
+// 		}
+// 		//cout << "a = " << wX << endl;
+// 		for (auto &ite: _Sigma){
+// 			ite->aT().rowbv(w,wX,r);
+// 		}
+// 		//cout << "aT = " << wX << endl;
+// 	} while ((r=in.get_next(r)) != 0);
+	
+// 	//cout << "New result: " << wX << endl;
+// 	return wX;
+// }
+
+void Graph::computeBall(bm::bvector<> &ball, const unsigned dia, bm::bvector<> &border) {
+	unsigned rad = 0;
+	unsigned nd;
+	bm::bvector<> borderX(size());
+	// while (rad++ < dia) {
+
+	// 	// cout << "ball: " << ball << endl << "border: " << border << endl;
+
+	// 	borderX.reset(); // reset new border
+
+	// 	nd = border.get_first();
+	// 	if (!nd && !border.test(0)) {
+	// 		// cout << "failed at 0" << endl;
+	// 		return;
+	// 	}
+
+	// 	do {
+	// 		for (Label *l : _Sigma) {
+	// 			// cout << l->str() << endl;
+	// 			l->a().updateNeighbors(nd, borderX);
+	// 			l->aT().updateNeighbors(nd, borderX);
+	// 		}
+	// 	} while (nd = border.get_next(nd));
+	// 	borderX -= ball;
+	// 	ball |= borderX;
+	// 	border.swap(borderX);
+	// }
+}
+
+// void Graph::computeAllBalls(vector<bm::bvector<> > &balls, vector<bm::bvector<> > &borders, const unsigned radius, bm::bvector<> &which) {
+// 	unsigned brow = which.get_first();
+// 	if (brow || which.test(0)) {
+// 		do {
+// 			balls.push_back(bm::bvector<>(size()).set(brow));
+// 			borders.push_back(bm::bvector<>(size()));
+// 		} while (brow = which.get_next(brow));
+// 	}
+
+
+// 	unsigned threadsNum = (args_info.threads_arg < balls.size() ? args_info.threads_arg : balls.size());
+// 	unsigned workload = balls.size() / threadsNum;
+
+// 	thread threads[threadsNum];
+// 	for (unsigned i = 0; i < threadsNum; ++i) {
+// 		threads[i] = std::thread(inflate0, i, i*workload, (i+1)*workload, ref(*this), ref(balls), ref(borders), radius);
+// 	}
+
+// 	// cout << "computing " << balls.size() << " balls in " << threadsNum << " threads (r=" << radius << ")" << endl;
+
+// 	threads[0].join();
+// 	threads[0] = std::thread(inflate0, 0, threadsNum * workload, balls.size(), ref(*this), ref(balls), ref(borders), radius);
+// 	for (unsigned i = 0; i < threadsNum; ++i) {
+// 		threads[i].join();
+// 	}
+// }
+
+
+void Graph::loadRow(const unsigned label, const string &line) {
+	string row, size, p;
+	unsigned last, next;
+	last = 0;
+	// read row
+	next = line.find(':');
+	row = line.substr(last, next);
+	last = next+1;
+	// read size
+	next = line.find(':', last);
+	size = line.substr(last, next-last);
+	last = next+1;
+
+	unsigned rnum = stoi(row);
+	unsigned rsize = stoi(size);
+	unsigned cnum;
+
+	// cout << "here: " << line << endl;
+	// cout << "extracted " << row << ":" << size << endl;
+	for (unsigned i = 0; i < rsize-1; ++i) {
+		next = line.find(':',last);
+
+		cnum = stoi(line.substr(last,next-last));
+		_Sigma[label]->set2(rnum, cnum);
+		addNeighbors(rnum,cnum);
+
+		last = next+1;
+	}
+	// cout << "set (" << rnum << "," << stoi(line.substr(last)) << ") in " << label << endl;
+	cnum = stoi(line.substr(last,next-last));
+	_Sigma[label]->set2(rnum, cnum); // setting final column
+	addNeighbors(rnum,cnum);
+}
+
+// vector<bm::bvector<> > &Graph::neighbors() {
+// 	return NEIGHBORS;
+// }
+
+SMatrix &Graph::neighbors() {
+	return NEIGHBORS;
+}
+
+void Graph::addNeighbors(const unsigned n1, const unsigned n2) {
+	// NEIGHBORS[n1].set(n2);
+	// NEIGHBORS[n2].set(n1);
+	// if (n2 == 27225568) {
+	// 	cout << " !" << n1;
+	// }
+	NEIGHBORS.set(n1, n2);
+	NEIGHBORS.set(n2, n1);
+}
+
+
+// void inflate(const unsigned pid, Graph &g, vector<bm::bvector<> > &balls, const int d, StrongSimulation &filter) {
+// 	unsigned workload = balls.size() / args_info.threads_arg;
+
+// 	// actual computation
+// 	unsigned i0 = pid * workload;
+// 	unsigned imax = (pid+1) * workload;
+// 	inflate0(pid,
+// 		pid * workload,
+// 		(pid+1) * workload,
+// 		g, balls, d, filter);
+	
+
+// 	if (!pid) {
+// 		inflate0(pid,
+// 			args_info.threads_arg * workload, 
+// 			balls.size() % args_info.threads_arg,
+// 			g, balls, d, filter);
+// 	}
+// }
+
+// void inflate(bm::bvector<> &ball, bm::bvector<> &border, Graph &g, const unsigned radius) {
+// 	bm::bvector<> border1;
+// 	for (unsigned r = 0; r < radius; ++r) {
+// 		border1.reset();
+// 		unsigned ro = border.get_first();
+// 		do {
+// 			border1 |= g.NEIGHBORS[ro] - ball;
+// 		} while (ro = border.get_next(ro));
+// 		if (border1.none()) {
+// 			break;
+// 		}
+// 		ball |= border1;
+// 		border.swap(border1);
+// 	}
+// }
+
+// void inflate0(const unsigned pid, const unsigned min, const unsigned max, Graph &g, vector<bm::bvector<> > &balls, vector<bm::bvector<> > &borders, const int d) {
+// 	bm::bvector<> border(g.size()), border1(g.size());
+// 	for (unsigned i = min; i < max; ++i) {
+// 		border = balls[i];
+// 		border1.reset();
+// 		for (unsigned r = 0; r < d; ++r) {
+// 			unsigned ro = border.get_first();
+// 			do {
+// 				border1 |= g.NEIGHBORS[ro] - balls[i];
+// 			} while (ro = border.get_next(ro));
+// 			if (border1.none()) {
+// 				break;
+// 			}
+// 			balls[i] |= border1;
+// 			border.swap(border1);
+// 			border1.reset();
+// 		}
+// 		// cout << "here" << endl;
+// 		borders[i].swap(border);
+// 		// cout << "there" << endl;
+// 	}
+// }
