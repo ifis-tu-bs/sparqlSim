@@ -24,6 +24,6 @@ AC_PROG_YACC
 # Checks for library functions.
 
 
-AC_CONFIG_FILES([Makefile src/Makefile utils/converter/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile])
 AM_INIT_AUTOMAKE
 AC_OUTPUT
