@@ -85,6 +85,10 @@ option "icde2019" -
 "turns evaluation mode of ICDE 2019 on"
 flag off
 
+option "vldb2019" -
+"turns evaluation mode of VLDB 2019 on"
+flag off
+
 option "threads" t
 "specifies the number of threads"
 int typestr="N" default="1" optional

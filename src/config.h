@@ -11,7 +11,7 @@
 #define PACKAGE_NAME "sparqlSim"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "sparqlSim 0.3"
+#define PACKAGE_STRING "sparqlSim 0.9"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "sparqlSim"
@@ -20,10 +20,10 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "0.3"
+#define PACKAGE_VERSION "0.9"
 
 /* Version number of package */
-#define VERSION "0.3"
+#define VERSION "0.9"
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

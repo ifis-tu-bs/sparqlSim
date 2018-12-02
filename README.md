@@ -4,7 +4,7 @@
 ## Getting Started
 First make sure that you have the following packages installed:
 ```
-bison flex gengetopt libboost-dev libboost-all-dev
+bison flex gengetopt
 ```
 
 Make sure the following programs are installed:
@@ -28,7 +28,34 @@ We build our software using the latest gcc compiler (tested on gcc version 7.3.0
 ... loads one graph from all database files and starts interactive console
     (may use regular expressions in filenames)
 ```
+
+### Store and Load
+Usually, the program reads NT-files and internally optimizes the its graph structure for querying purposes. Since version 0.9 of sparqlSim, you get the opportunity to also store your favorite databases in a format more similar to the program's internal representation of it. Therefore, simply call
+```
+./sparqlSim <ANY PARAMETERS> -s DBDIR DBFILE1 .. DBFILEn
+```
+The DBDIR must be an existing directory. Upon loading the NT-files, the program writes a couple of files into the DBDIR. If you rerun the program and you want to load the stored data from DBDIR, you call
+```
+./sparqlSim -l DBDIR <ANY PARAMETERS>
+```
+At the moment, only one database directory is supported for loading.
+
+### Evaluation Modes
+Since version 0.9, we support several different modes beyond the original pruning algorithm. Therefore, parameter '-e MODE' specifies the evaluation mode MODE. By default, MODE equals PRUNE which contains the original pruning algorithm. Further modes are
+- DUAL: computes the dual simulation matches
+- HHK: computes the pruning of BGPs by the HHK algorithm
+- MAETAL: computes the pruning of BGPs by the algorithm of Ma et al.
+- STRONG: computes the strong simulation results
+- CSTRONG: computes the strong simulation results with better heuristics
+By default, the only output that is produced is the number of results computed by the program. Specify your favorite output stream by parameter '-o STREAM'.
+
 ## Important parameters for evaluation purposes 
+
+### Repeat VLDB 2019 Experiments
+Call the program as follows:
+```
+./sparqlSim --vldb2019 DATABASE(S) -f QUERYFILE1 .. -f QUERYFILEn
+```
 
 ### Repeat ICDE 2019 Experiments
 Call the program as follows:

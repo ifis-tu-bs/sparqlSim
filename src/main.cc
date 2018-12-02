@@ -73,6 +73,10 @@ int main(int argc, char **argv) {
 		args_info.csv_flag = 1;
 		args_info.verbose_flag = 1;
 	}
+	if (args_info.vldb2019_flag) {
+		args_info.csv_flag = 1;
+		args_info.eval_arg[0] = eval_arg_CSTRONG;
+	}	
 
 	if (args_info.bounds_given) {
 		string bounds(args_info.bounds_arg);
