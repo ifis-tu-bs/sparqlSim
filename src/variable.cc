@@ -312,3 +312,16 @@ const bool Variable::footloose() const {
 const bool Variable::compare(Variable &other) const {
 	return _val.compare(other._val);
 } 
+
+unsigned Variable::get_first() const {
+	return _val.get_first();
+}
+
+unsigned Variable::get_next(unsigned i) const {
+	return _val.get_next(i);
+}
+
+const bool Variable::test(unsigned i) const {
+	return _val.test(i);
+}
+

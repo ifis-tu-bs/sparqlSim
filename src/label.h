@@ -93,6 +93,12 @@ public:
 	// 	_aT->string2row(buf);
 	// }
 
+	void swap() {
+		SMatrix *tmp = _a;
+		_a = _aT;
+		_aT = tmp;
+	}
+
 	void optimize(unsigned int max) {
 		_a->compress(max);
 		_aT->compress(max);

@@ -1,3 +1,5 @@
+#ifdef MULTITHREADING
+
 #ifndef ALLDS_H
 #define ALLDS_H
 
@@ -45,3 +47,5 @@ private:
 };
 
 #endif /* ALLDS_H */
+
+#endif /* MULTITHREADING */

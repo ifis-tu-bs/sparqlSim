@@ -58,6 +58,8 @@ public:
 	Label &getLabel(const unsigned int idx);
 	// get label by name
 	Label &getLabel(const string &name);
+	// create and return new label subject->object matrices
+	Label &createLabel(const string &name, const bool subj = true);
 
 	// add triple by sub, pred, obj strings
 	void addTriple(const string &sub, const string &pre, const string &obj);
@@ -84,7 +86,7 @@ public: /// Query and Info Methods ///
 	/// Size Info
 	const unsigned int size() const;
 	const unsigned int Vsize() const;
-	const unsigned int Esize() const;
+	const unsigned int Esize();
 	const unsigned int Ssize() const;
 
 	// computes the shortest path between two nodes v1 and v2
@@ -98,7 +100,7 @@ public: /// Query and Info Methods ///
 
 public: /// Streaming and Output ///
 	// returns report string
-	void report(ostream &os) const;
+	void report(ostream &os, const bool full = false);
 
 	// store this database to disk
 	void store(const string &dir);
@@ -124,6 +126,15 @@ private:
 	// node number: replaces the size in load mode
 	unsigned _nodenum;
 
+	unsigned _maxDegree = 0;
+	unsigned _maxNode = 0;
+	unsigned _maxLabel = 0;
+
+	double _meanDegree = 0.0;
+
+	void updateDegree(const unsigned nod, const unsigned deg, const unsigned lab, const unsigned k);
+
+private:
 	// set of labels
 	vector<Label *> _Sigma;
 	// reverse index on _Sigma

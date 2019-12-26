@@ -79,9 +79,9 @@ CmdReturn cret;
 %token LPAR RPAR IRI_BEGIN IRI_END IRI
 %token NUMBER IDENT VARIDENT WORDS XLITERAL
 
-%token KEY_HELP KEY_LOAD KEY_IMPORT KEY_DATABASE KEY_PATTERN 
+%token KEY_HELP KEY_LOAD KEY_IMPORT KEY_DATABASE KEY_PATTERN
 %token KEY_STORE KEY_REPORT KEY_QUIT KEY_QUERY KEY_CHECK
-%token KEY_SET KEY_SETTINGS KEY_ITERATIONS KEY_PRUNING 
+%token KEY_SET KEY_SETTINGS KEY_ITERATIONS KEY_PRUNING
 %token KEY_CSV KEY_PROFILE KEY_VIRTUOSO KEY_VERBOSE
 %token KEY_EVAL
 %token KEY_ON KEY_OFF
@@ -204,7 +204,7 @@ prefix_decl:
 
 prefix:
   IDENT COLON
-  { //cout << "query for " << $1 << ": " << prefixes[$1] << endl; 
+  { //cout << "query for " << $1 << ": " << prefixes[$1] << endl;
   $$ = strdup(prefixes[$1].c_str()); }
 ;
 
@@ -221,21 +221,27 @@ query:
     switch (args_info.eval_arg[MOD]) {
       case eval_arg_STRONG: {
         // cout << "strong" << endl;
+#ifdef MULTITHREADING
         Q = new StrongSimulation(*DB);
+#endif /* MULTITHREADING */
         break;
       }
       case eval_arg_CSTRONG: {
         // cout << "centered" << endl;
+#ifdef MULTITHREADING
         Q = new CenteredStrongSimulation(*DB);
+#endif /* MULTITHREADING */
         break;
       }
       case eval_arg_DUAL: {
         // cout << "dual" << endl;
+#ifdef MULTITHREADING
         Q = new AllDS(*DB);
+#endif /* MULTITHREADING */
         break;
       }
       case eval_arg_HHK: {
-        Q = new HHK(*DB);
+        Q = new HHK(*DB, !args_info.no_count_flag);
         break;
       }
       case eval_arg_MAETAL: {
@@ -244,10 +250,11 @@ query:
       }
       case eval_arg_MINDUAL:
       case eval_arg_PRUNE:
-      default:
+      default: {
         // cout << "prune" << endl;
         Q = new QGSimulation(*DB);
         break;
+      }
     }
     Q->push();
   }
@@ -286,7 +293,8 @@ pattern:
   triple triples
 | LPAR { Q->push(); } pattern RPAR { Q->pop(); }
 | pattern OP_OPTIONAL
-  { Q->push(true); }
+  { if (!args_info.bgp_flag) Q->push(true);
+      else Q->push(); }
   LPAR pattern RPAR
   { Q->pop(); }
 | pattern join
@@ -310,17 +318,22 @@ triples:
 ;
 
 triple:
-  subject predicate object TRIPLE_END
-  { 
+  subject predicate object t_end
+  {
     if (!DB->isLetter($2)) {
       Q->setEmpty(true);
       tmp.str("");
       tmp << "runtime error: label '" << $2 << "' is not in DB";
       return _yyerror(tmp.str().c_str());
     } else {
-      Q->addTriple($1, $2, $3); 
+      Q->addTriple($1, $2, $3);
     }
   }
+;
+
+t_end:
+  TRIPLE_END
+| /* empty */
 ;
 
 subject:
@@ -329,11 +342,11 @@ subject:
 | IRI
   { $$ = $1; }
 | prefix IDENT
-  { 
+  {
     string pred = $1;
     pred.insert(pred.size()-1,$2);
     $$ = strdup(pred.c_str());
-  } 
+  }
 ;
 
 predicate:
@@ -345,6 +358,9 @@ predicate:
   }
 | IRI
   { $$ = $1; }
+| variable
+  { $$ = $1; }
+;
 
 object:
   subject

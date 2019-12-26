@@ -117,7 +117,9 @@ protected:
 		return _projections.count(var);
 	}
 
-	unsigned countTriples();
+	unsigned countTriples() const;
+	unsigned triples() const { return countTriples(); }
+	unsigned triplesBaseline() const;
 
 	const bool schedulable(unsigned eq, const bool b = false);
 

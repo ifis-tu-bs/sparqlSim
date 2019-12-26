@@ -1,3 +1,5 @@
+#define BASELINE
+
 #include "simulation.h"
 #include "variable.h"
 
@@ -44,8 +46,8 @@ QGSimulation::QGSimulation(QGSimulation &s) :
 	_db(s._db), _max(s._max),
 	_empty(s._empty), _order(s._order),
 	_stable(s._stable), _dirs(s._dirs),
-	_class(s._class), 
-	_out(s._out), _outputDone(false), 
+	_class(s._class),
+	_out(s._out), _outputDone(false),
 	_fileout(s._fileout), _filename(s._filename),
 	_Labels(s._Labels)
 {
@@ -123,7 +125,7 @@ unsigned QGSimulation::evaluate(std::ostream &os) {
 	// _reporter.end("fixpoint", _query);
 
 	// os << "   .. done in " << iter << " iterations" << endl;
-	// _reporter.note("# of iterations", _query, to_string(iter));
+	_reporter.note("# of iterations", _query, to_string(iter));
 
 	if (empty()) {
 		_reporter.note("# of results", _query, to_string(0));
@@ -143,6 +145,8 @@ unsigned QGSimulation::output() {
 		closeOutputStream();
 		_outputDone = true;
 	}
+
+	return result;
 }
 
 unsigned QGSimulation::output(const std::string &filename) {
@@ -159,7 +163,7 @@ unsigned QGSimulation::output(const std::string &filename) {
 
 unsigned QGSimulation::output(std::ostream &os) {
 	os << "# |E|= " << _db->Esize() << endl;
-	os << "#  Q = " << _query; 
+	os << "#  Q = " << _query;
 	os << *this;
 
 	return 0; // TODO return number of written lines
@@ -191,7 +195,7 @@ void QGSimulation::overtakeKarla(const std::string &filename) {
 void QGSimulation::statistics(const std::string &filename) {
 	ofstream stats;
 	stats.open(filename+".statistics", ofstream::app);
-	if (!checkStream(filename+".statistics", stats)) 
+	if (!checkStream(filename+".statistics", stats))
 		return;
 
 	// take Karla's info
@@ -208,12 +212,37 @@ void QGSimulation::statistics(std::ostream &os) {
 	_reporter.report();
 }
 
+unsigned QGSimulation::countTriples() const {
+    if (_empty)
+        return 0;
+
+    unsigned r = 0;
+    unsigned ro = 0; //
+
+    for (unsigned i = 0; i < _sourceV.size(); i=i+2) {
+        ro = _sourceV[i]->get_first();
+        do {
+        	r += _operand[i]->matrix_p(_dirs[i])->checkMult(ro,_targetV[i]->val());
+        } while (ro = _sourceV[i]->get_next(ro));
+    }
+
+    return r;
+}
+
+unsigned QGSimulation::triplesBaseline() const {
+	unsigned r = 0;
+	for (Label *l: _Labels) {
+		r += l->a().countBits();
+	}
+	return r;
+}
+
 void QGSimulation::csv(const std::string &filename, const char delim) {
 	ofstream csv_f;
 	_reporter.note("filename", _query, filename);
 
 	csv_f.open(filename+".csv", ofstream::app);
-	if (!checkStream(filename+".csv", csv_f)) 
+	if (!checkStream(filename+".csv", csv_f))
 		return;
 
 	overtakeKarla(filename);
@@ -226,15 +255,22 @@ void QGSimulation::csv(std::ostream &os, const char delim) {
 	os << "<<<";
 
 	os << delim << _reporter.getValue("filename", _query);
-	
+
 	os << delim << _reporter.getValue("compilation time", _query);
-	os << delim << _reporter.getValue("fixpoint", _query);
+	// os << delim << _reporter.getValue("fixpoint", _query);
 	os << delim << _reporter.getValue("# of iterations", _query);
-	os << delim << order();
 	os << delim << _reporter.getValue("evaluation time", _query);
 	os << delim << _reporter.getValue("# of results", _query);
-	
+
+#ifdef BASELINE
+	os << delim << triples();
+	os << delim << triplesBaseline();
+#endif /* BASELINE */
+
+	os << delim << order();
 	os << delim	<< _query;
+    os << delim << _vars.size();
+    os << delim << _Labels.size();
 	os << delim << _triplesInQuery;
 	os << delim << _optsInQuery;
 	switch (_class) {
@@ -281,6 +317,9 @@ std::map<std::string, bm::bvector<> > QGSimulation::simulation() {
 // These are the core methods of the Simulation class
 
 unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
+	static const double m = 1.0;
+	static const double n = 0.6;
+
 	bm::bvector<> Y(max());
 	bm::bvector<> *x, *y;
 
@@ -288,12 +327,13 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
 	unsigned int r;
 	bool columnmode;
 
-	unsigned N,M;
-	N = M = 1;
-	if (swtch) {
-		N = swtch;
-		M = swtch+1;
-	}
+	// unsigned N,M;
+	// N = M = 1;
+	// if (swtch) {
+	// 	N = swtch;
+	// 	M = swtch+1;
+	// }
+
 
 	do {
 		// os << "iteration: " << iter << endl;
@@ -304,14 +344,14 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
 			if (_stable[i] || _targetV[i]->isLeaf())
 				continue;
 			// os << "pass" << endl;
-			
+
+			_stable[i] = true;
+
 			x = &_sourceV[i]->getVal();
-			// os << "x = " << x << endl;
 			y = &_targetV[i]->getVal();
-			// os << "y = " << y << endl;
 
 			// compute strategy
-			if (x->count() * M < N * y->count()) {
+			if (x->count() <= y->count()) {
 				columnmode = false;
 			} else {
 				columnmode = true;
@@ -321,7 +361,6 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
 				r = x->get_first(); // position of first 1
 				if (r==0 && !x->test(0)) {
 					_targetV[i]->null(); // if x is 0, then y is
-					// assert(false);
 				} else {
 					Y.reset();
 					do {
@@ -347,10 +386,7 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
 				}
 			}
 
-			// os << "y (result) = " << y << endl;
-
-			_stable[i] = true;
-			if (_targetV[i]->isEmpty() && 
+			if (_targetV[i]->isEmpty() &&
 				_targetV[i]->isMandatory()) {
 				// cout << "mandatory is empty: " << _targetV[i]->getId() << endl;
 				_empty = true;
@@ -358,9 +394,9 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
 			}
 		}
 	} while (!stable2());
-	_Stable = true;
-	// os << "all inequalities are stable" << endl;
+	// // os << "all inequalities are stable" << endl;
 
+	bool _Stable = true;
 	for (unsigned int i = 0; i < _vars.size(); ++i) {
 		if (_vars[i]->updVal()) {
 			_Stable = false;
@@ -373,14 +409,14 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
 				continue;
 			// cout << _targetV[i]->getId() << endl;
 			// os << "pass" << endl;
-			
+
+			_stable[i] = true;
+
 			x = &_sourceV[i]->getVal();
-			// os << "x = " << x << endl;
 			y = &_targetV[i]->getVal();
-			// os << "y = " << y << endl;
 
 			// compute strategy
-			if (x->count() * M < N * y->count()) {
+			if (x->count() < y->count()) {
 				columnmode = false;
 			} else {
 				columnmode = true;
@@ -410,10 +446,7 @@ unsigned int QGSimulation::fixpoint(const unsigned swtch, ostream &os) {
 				}
 			}
 
-			// os << "y (result) = " << y << endl;
-
-			_stable[i] = true;
-			if (_targetV[i]->isEmpty() && 
+			if (_targetV[i]->isEmpty() &&
 				_targetV[i]->isMandatory()) {
 				// cout << "mandatory is empty: " << _targetV[i]->getId() << endl;
 				_empty = true;
@@ -499,7 +532,7 @@ void QGSimulation::profile() {
 			}
 
 			_stable[i] = true;
-			if (_targetV[i]->isEmpty() && 
+			if (_targetV[i]->isEmpty() &&
 				_targetV[i]->isMandatory()) {
 				_empty = true;
 				return iter;
@@ -557,7 +590,7 @@ void QGSimulation::profile() {
 			}
 
 			_stable[i] = true;
-			if (_targetV[i]->isEmpty() && 
+			if (_targetV[i]->isEmpty() &&
 				_targetV[i]->isMandatory()) {
 				_empty = true;
 				return iter;
@@ -745,11 +778,11 @@ void QGSimulation::pop() {
 			for (auto &m : _master.back()) {
 				m.second->setMandatory(true);
 			}
-			
+
 			if (!args_info.random_flag && !args_info.permute_flag) {
 				vector<double> Vs, Vs2;
 				for (unsigned int i = 0; i < _sourceV.size(); ++i) {
-					Vs.push_back(_dirs[i] ? _operand[i]->a().count() : _operand[i]->aT().count());//) * // y <=
+					Vs.push_back(_dirs[i] ? _operand[i]->a().colNum() : _operand[i]->aT().colNum());//) * // y <=
 					Vs2.push_back(_targetV[i]->degree());
 				}
 
@@ -764,7 +797,7 @@ void QGSimulation::pop() {
 							continue;
 						}
 						if (Vs[j] < Vs[min]
-						 	|| (Vs2[j] < Vs2[min] && 
+						 	|| (Vs2[j] < Vs2[min] &&
 								Vs[j] == Vs[min])) {
 							min = j;
 						}
@@ -785,25 +818,47 @@ void QGSimulation::pop() {
 }
 
 void QGSimulation::addTriple(const std::string &sub, const std::string &pred, const std::string &obj) {
-	Variable *s;
-	Variable *o;
+	Variable *s = NULL;
+	Variable *o = NULL;
+	Label *ll;
 
-	// Karla << sub << " " << pred << " " << obj;
-
-	if (sub[0] != '?') {
-		s = addConstant(sub);
+	if (pred[0] == '?') {
+		if (sub[0] != '?') {
+			ll = &_db->createLabel(sub);
+			s = addVariable(pred);
+		} else if (obj[0] != '?') {
+			ll = &_db->createLabel(obj, false);
+			ll->swap();
+			o = addVariable(pred);
+		} else {
+			cerr << "fatal error: cannot handle ?s ?p ?o triples" << endl
+				 << "             at least one component must be non-variable" << endl
+				 << "             ignoring this triple in the query" << endl;
+			return;
+		}
+		/// prepare for clean-up heap
 	} else {
-		s = addVariable(sub);
-	}
-	if (obj[0] != '?') {
-		// cout << obj << endl;
-		o = addConstant(obj);
-		// cout << o->val().count() << endl;
-	} else {
-		o = addVariable(obj);
+		ll = &_db->getLabel(pred);
 	}
 
-	Label &l = _db->getLabel(pred);
+
+	if (s == NULL) {
+		if (!args_info.all_variable_flag && sub[0] != '?') {
+			s = addConstant(sub);
+		} else {
+			s = addVariable(sub);
+		}
+	}
+
+	if (o == NULL) {
+		if (!args_info.all_variable_flag && obj[0] != '?') {
+			o = addConstant(obj);
+		} else {
+			o = addVariable(obj);
+		}
+	}
+
+	Label &l = *ll;
 	_labels.insert(
 		std::pair<std::string,unsigned>(
 			l.str(), _sourceV.size()
@@ -815,8 +870,8 @@ void QGSimulation::addTriple(const std::string &sub, const std::string &pred, co
 	s->addEquation(_sourceV.size());
 	o->addCoequation(_sourceV.size());
 
-	s->addRemove(l.matrix_p(true));
-	o->addRemove(l.matrix_p(false));
+	// s->addRemove(l.matrix_p(true));
+	// o->addRemove(l.matrix_p(false));
 
 	_mandatory.set_bit(_sourceV.size(), !_slavemode.back());
 	_sourceV.push_back(s);
@@ -863,11 +918,11 @@ void QGSimulation::addTripleNeighbors(const unsigned i, const unsigned j) {
 }
 
 bool QGSimulation::isTriple(const unsigned int src, const string &lab, const unsigned int tar) {
-	
+
 	for (std::multimap<std::string, unsigned>::iterator it = _labels.lower_bound(lab);
 		it != _labels.upper_bound(lab); ++it) {
 		if (//(*_operand[it->second])(src, tar) &&
-			(*_sourceV[it->second])(src) && 
+			(*_sourceV[it->second])(src) &&
 			(*_targetV[it->second])(tar)) {
 			return true;
 		}
@@ -894,7 +949,7 @@ Variable *QGSimulation::addVariable(const std::string &name) {
 	_master.back()[name] = _vars.back();
 
 	// cout << name << ":" << _vars.back() << endl;
-	
+
 	return _vars.back();
 }
 
@@ -933,34 +988,34 @@ void QGSimulation::resetAll() {
 		v->getVal();
 }
 
-unsigned QGSimulation::countTriples() {
-	if (_triplescounted)
-		return _triplecount;
-	_triplescounted = true;
-	_triplecount = 0;
+// unsigned QGSimulation::countTriples() {
+// 	if (_triplescounted)
+// 		return _triplecount;
+// 	_triplescounted = true;
+// 	_triplecount = 0;
 
-	if (empty()) {
-		return 0;
-	}
+// 	if (empty()) {
+// 		return 0;
+// 	}
 
-	for (unsigned int i = 0; i < _db->Ssize(); ++i) {
-		Label &l = _db->getLabel(i);
-		const std::string p = l.str();
-		// cout << "label: " << p << endl;
-		std::vector<unsigned int> nodepairs = l.getPairs();
+// 	for (unsigned int i = 0; i < _db->Ssize(); ++i) {
+// 		Label &l = _db->getLabel(i);
+// 		const std::string p = l.str();
+// 		// cout << "label: " << p << endl;
+// 		std::vector<unsigned int> nodepairs = l.getPairs();
 
-		for (unsigned int s = 0; s < nodepairs.size(); s += 2) {
-			// cout << "checking nodes " << sim._db->getNode(nodepairs[s])
-			//      << " and " << sim._db->getNode(nodepairs[s+1]) << endl;
-			if (isTriple(nodepairs[s], p, nodepairs[s+1])) {
-				// cout << "success" << endl;
-				++_triplecount;
-			}
-		}
-	}
+// 		for (unsigned int s = 0; s < nodepairs.size(); s += 2) {
+// 			// cout << "checking nodes " << sim._db->getNode(nodepairs[s])
+// 			//      << " and " << sim._db->getNode(nodepairs[s+1]) << endl;
+// 			if (isTriple(nodepairs[s], p, nodepairs[s+1])) {
+// 				// cout << "success" << endl;
+// 				++_triplecount;
+// 			}
+// 		}
+// 	}
 
-	return _triplecount;
-}
+// 	return _triplecount;
+// }
 
 const bool QGSimulation::schedulable(unsigned eq, const bool b) {
 	// static unsigned div = (_scheduled.size() <= 6 ? 2 : _scheduled.size() / 2 - 1);
@@ -985,7 +1040,7 @@ const bool QGSimulation::schedulable(unsigned eq, const bool b) {
 			for (unsigned i = 0; i < _scheduled.size(); i=i+2) {
 				if (_mandatory[i] && !(_scheduled[i] || _scheduled[i+1]))
 					return false;
-			}				
+			}
 		}
 	} else {
 		if (rand() % div)
