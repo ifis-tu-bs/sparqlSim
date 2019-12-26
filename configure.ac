@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([sparqlSim], 0.9, stephan.mennicke@gmail.com,sparqlSim)
+AC_INIT([sparqlSim],1.0,stephan.mennicke@gmail.com,sparqlSim)
 
 AC_CONFIG_SRCDIR([src/main.cc])
 AC_CONFIG_HEADERS([src/config.h])

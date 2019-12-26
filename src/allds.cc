@@ -1,3 +1,5 @@
+#ifdef MULTITHREADING
+
 #include "allds.h"
 #include "variable.h"
 
@@ -30,7 +32,7 @@ unsigned AllDS::evaluate(ostream &os) {
 		_reporter.note("# of results", _query, to_string(0));
 		return 0;
 	}
-	
+
 	// _stack.push_back(simulation());
 	_root = simulation();
 	printHeader(out(), _root);
@@ -116,7 +118,7 @@ void AllDS::setOutput(const string &filename) {
 void AllDS::statistics(const std::string &filename) {
 	ofstream stats;
 	stats.open(filename+".dual.statistics", ofstream::app);
-	if (!checkStream(filename+".dual.statistics", stats)) 
+	if (!checkStream(filename+".dual.statistics", stats))
 		return;
 
 	// take Karla's info
@@ -138,7 +140,7 @@ void AllDS::csv(const std::string &filename, const char delim) {
 	_reporter.note("filename", _query, filename);
 
 	csv_f.open(filename+".dual.csv", ofstream::app);
-	if (!checkStream(filename+".dual.csv", csv_f)) 
+	if (!checkStream(filename+".dual.csv", csv_f))
 		return;
 
 	overtakeKarla(filename);
@@ -151,14 +153,14 @@ void AllDS::csv(std::ostream &os, const char delim) {
 	os << "<<<";
 
 	os << delim << _reporter.getValue("filename", _query);
-	
+
 	os << delim << _reporter.getValue("compilation time", _query);
 	os << delim << _reporter.getValue("fixpoint", _query);
 	os << delim << _reporter.getValue("# of iterations", _query);
 	os << delim << order();
 	os << delim << _reporter.getValue("evaluation time", _query);
 	os << delim << _reporter.getValue("# of results", _query);
-	
+
 	os << delim	<< _query;
 	os << delim << _triplesInQuery;
 	os << delim << _optsInQuery;
@@ -181,3 +183,5 @@ void AllDS::csv(std::ostream &os, const char delim) {
 
 	os  << delim << ">>>" << endl;
 }
+
+#endif /* MULTITHREADING */

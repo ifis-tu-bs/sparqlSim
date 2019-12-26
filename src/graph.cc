@@ -91,25 +91,21 @@ const bool Graph::isNode(const string &name) {
 
 const unsigned int Graph::addLabel(const string &label) {
 	if (!isLabel(label)) {
-		// cout << "add label '" << label << "'" << endl;
 		Label *l = new Label(label);
 		_rSigma[label] = _Sigma.size();
 		_Sigma.push_back(l);
-		// _edgesMap.push_back(set<Edge *>());
-		// _edgesMap.push_back(unordered_set<Edge *>());
 	}
 	return _rSigma[label];
 }
 
 const bool Graph::isLabel(const string &l) {
-	//for (auto &e: _rSigma) cout << e.first << endl;
-	//cout << "checking " << l << endl;
 	return (_RSigma.find(strHash(l)) != _RSigma.end() || _rSigma.find(l) != _rSigma.end());
 }
 
 const bool Graph::isLetter(const string &l) {
-//	for (auto &e: _rSigma) cout << e.first << endl;
-  //      cout << "checking " << l << endl;
+	if (l[0] == '?') {
+		return true;
+	}
 	return isLabel(l);
 }
 
@@ -119,6 +115,29 @@ Label &Graph::getLabel(unsigned int idx) {
 
 Label &Graph::getLabel(const string &name) {
 	return getLabel(rSigma(name));
+}
+
+Label &Graph::createLabel(const string &name, const bool subj) {
+	Label *r = new Label(name);
+	r->a().loadMode(); r->aT().loadMode();
+	bm::bvector<> row;
+	for (unsigned i = 0; i < _Sigma.size(); ++i) {
+		if (subj) {
+			row = _Sigma[i]->a().rowBV(getNodeIndex(name));
+		} else {
+			row = _Sigma[i]->aT().rowBV(getNodeIndex(name));
+		}
+		unsigned p = row.get_first();
+		if (p || row.test(0)) {
+			do {
+				r->set2(i, p);
+			} while (p = row.get_next(p));
+		}
+	}
+
+	r->makeFinal();
+
+	return *r;
 }
 
 const unsigned Graph::rSigma(const string &name) {
@@ -232,12 +251,12 @@ const unsigned Graph::Vsize() const {
 }
 
 // returns size of the edge set
-const unsigned Graph::Esize() const {
-	// if (!_numTriples) {
-	// 	for (Label *l : _Sigma) {
-	// 		_numTriples += l->countTriples();
-	// 	}
-	// }
+const unsigned Graph::Esize() {
+	if (!_numTriples) {
+		for (Label *l : _Sigma) {
+			_numTriples += l->countTriples();
+		}
+	}
 	return _numTriples;
 }
 
@@ -415,57 +434,27 @@ void Graph::computeBall(bm::bvector<> &ball, const unsigned dia, bm::bvector<> &
 // 	}
 // }
 
-
-void Graph::loadRow(const unsigned label, const string &line) {
-	string row, size, p;
-	unsigned last, next;
-	last = 0;
-	// read row
-	next = line.find(':');
-	row = line.substr(last, next);
-	last = next+1;
-	// read size
-	next = line.find(':', last);
-	size = line.substr(last, next-last);
-	last = next+1;
-
-	unsigned rnum = stoi(row);
-	unsigned rsize = stoi(size);
-	unsigned cnum;
-
-	// cout << "here: " << line << endl;
-	// cout << "extracted " << row << ":" << size << endl;
-	for (unsigned i = 0; i < rsize-1; ++i) {
-		next = line.find(':',last);
-
-		cnum = stoi(line.substr(last,next-last));
-		_Sigma[label]->set2(rnum, cnum);
-		addNeighbors(rnum,cnum);
-
-		last = next+1;
-	}
-	// cout << "set (" << rnum << "," << stoi(line.substr(last)) << ") in " << label << endl;
-	cnum = stoi(line.substr(last,next-last));
-	_Sigma[label]->set2(rnum, cnum); // setting final column
-	addNeighbors(rnum,cnum);
-}
-
-// vector<bm::bvector<> > &Graph::neighbors() {
-// 	return NEIGHBORS;
-// }
-
 SMatrix &Graph::neighbors() {
 	return NEIGHBORS;
 }
 
 void Graph::addNeighbors(const unsigned n1, const unsigned n2) {
-	// NEIGHBORS[n1].set(n2);
-	// NEIGHBORS[n2].set(n1);
-	// if (n2 == 27225568) {
-	// 	cout << " !" << n1;
+	// static unsigned short need4neighbor = 0; // need not evaluated, yet
+
+	// if (!need4neighbor) {
+	// 	need4neighbor = 1; // neighbors not needed
+	// 	for (unsigned i = 0; i < args_info.eval_given; ++i) {
+	// 		if (args_info.eval_arg[i] >= eval_arg_STRONG) {
+	// 			need4neighbor = 2; // neighbors needed
+	// 			break;
+	// 		}
+	// 	}
 	// }
-	NEIGHBORS.set(n1, n2);
-	NEIGHBORS.set(n2, n1);
+
+	// if (need4neighbor > 1) {
+	// 	NEIGHBORS.set(n1, n2);
+	// 	NEIGHBORS.set(n2, n1);
+	// }
 }
 
 

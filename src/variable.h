@@ -39,14 +39,14 @@ public:
 	bool operator()(unsigned i) { return _val.test(i); }
 
 	bool join(Variable &); // recomputes _val
-	bool join(const bm::bvector<> &); // 
+	bool join(const bm::bvector<> &); //
 
 	const bool subsumedBy(const bm::bvector<> &);
 	const bool subsumedBy(const Variable &);
 
 	bool update(Variable &); // updates my value accordingly
 	bool update(bm::bvector<> &); // updates my value accordingly
-	
+
 	void set(bm::bvector<> &); // sets the value
 	void set(bm::bvector<> &, bm::bvector<> &);
 	void null(); // sets _val to null
@@ -69,6 +69,7 @@ public:
 	void addEquation(const unsigned int idx, SMatrix * = NULL);
 	void addCoequation(const unsigned int idx);
 	vector<unsigned> &equations();
+	vector<unsigned> &coEquations() { return _coequations; }
 
 	bm::bvector<> unify();
 
@@ -144,6 +145,10 @@ public:
 
 	const bool compare(Variable &) const;
 
+	unsigned get_first() const;
+	unsigned get_next(unsigned i) const;
+	const bool test(unsigned i) const;
+
 private:
 	bm::bvector<> unifyMasters();
 	bm::bvector<> unifySlaves();
@@ -160,7 +165,7 @@ private:
 
 	// dependencies to other variables: other <= this
 	vector<Variable *> _slaves;
-	
+
 	// dependencies from other variables: this <= other
 	vector<Variable *> _masters;
 	map<Variable *, unsigned int> _rmasters;

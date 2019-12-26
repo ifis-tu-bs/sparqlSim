@@ -1,3 +1,5 @@
+#ifdef MULTITHREADING
+
 #ifndef STRONGSIMULATION_H
 #define STRONGSIMULATION_H
 
@@ -70,11 +72,11 @@ public:
 	std::vector<std::string> queryNodeSet();
 	std::string output(std::string delimiter);
 	std::string var();
-	unsigned int fixpointY();	
+	unsigned int fixpointY();
 	void setFullyUnstable();
 
 	friend std::ostream &operator<<(std::ostream &os, QGSimulation &s);
-	
+
 	// void operator=(StrongSimulation &ref);
 
 protected:
@@ -103,3 +105,5 @@ const unsigned strongsimulation0(const unsigned tid, bm::bvector<> &balls, SMatr
 bm::bvector<> operator-(vector<unsigned> &, bm::bvector<> &);
 
 #endif /* STRONGSIMULATION_H */
+
+#endif /* MULTITHREADING */

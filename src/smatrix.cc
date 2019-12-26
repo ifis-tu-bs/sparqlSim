@@ -165,47 +165,83 @@ void SMatrix::makeFinal() {
 	_rowBegin.push_back(_rows2.size());
 }
 
-void SMatrix::loadRow(std::string &line) {
-	string row, size, p;
-	unsigned last, next;
-	last = 0;
-
-	// read row
-	next = line.find(':');
-	row = line.substr(last, next);
-	last = next+1;
-	// read size
-	next = line.find(':', last);
-	size = line.substr(last, next-last);
-	last = next+1;
-
-	unsigned rnum = stoi(row);
-	unsigned rsize = stoi(size);
+// void SMatrix::loadRow(const std::string &line) {
+// 	// cout << "load" << endl;
+// 	string row, size, p;
+// 	unsigned last, next;
+// 	last = 0;
 
 
-	// initialize row
-	// (*_rows)[rnum] = vector<unsigned>(rsize);
-	_rowNums.push_back(rnum);
-	// _rows2.push_back(vector<unsigned>(rsize));
-	if (!_rowBegin.size())
-		_rowBegin.push_back(_rows2.size());
+// 	// read row
+// 	next = line.find(':');
+// 	row = line.substr(last, next);
+// 	last = next+1;
+// 	// read size
+// 	next = line.find(':', last);
+// 	size = line.substr(last, next-last);
+// 	last = next+1;
+
+// 	unsigned rnum = stoi(row);
+// 	unsigned rsize = stoi(size);
 
 
-	for (unsigned i = 0; i < rsize-1; ++i) {
-		next = line.find(':',last);
+// 	// initialize row
+// 	// (*_rows)[rnum] = vector<unsigned>(rsize);
+// 	_rowNums.push_back(rnum);
+// 	_rowSize.push_back(rsize);
+// 	// _rows2.push_back(vector<unsigned>(rsize));
+// 	if (!_rowBegin.size())
+// 		_rowBegin.push_back(_rows2.size());
 
-		_rows2.push_back(stoi(line.substr(last,next-last)));
-		_colV.set(_rows2.back());
+// 	vector<unsigned> tmp;
+// 	bool substr_possible = true;
 
-		last = next+1;
-	}
+// 	for (unsigned i = 0; i < rsize-1; ++i) {
+// 		next = line.find(':',last);
 
-	_rows2.push_back(stoi(line.substr(last)));
-	_colV.set(_rows2.back());
+// 		tmp.push_back(stoi(line.substr(last,next-last)));
 
-	// closing rowBegin for the sake of for-loops
-	_rowBegin.push_back(_rows2.size());
-}
+// 		if (!_colV.test(tmp.back())) {
+// 			_colV.set(tmp.back());
+// 			substr_possible = false;
+// 		}
+
+
+// 		last = next+1;
+// 	}
+
+// 	tmp.push_back(stoi(line.substr(last)));
+// 	if (!_colV.test(tmp.back())) {
+// 		_colV.set(tmp.back());
+// 		substr_possible = false;
+// 	}
+
+// 	// finding perfect substring within _rows2
+// 	// bool substr_found = false;
+// 	unsigned pos = 0; 
+// 	if (substr_possible) {
+// 		for (unsigned i = 0; i < _rows2.size(); ++i) {
+// 			if (_rows2[i] != tmp[pos]) {
+// 				pos = 0;
+// 			} else {
+// 				++pos;
+// 			}
+// 			if (pos == rsize) {
+// 				// cout << "succ:" << rsize << endl;
+// 				_rowBegin.back() = i - pos;
+// 				break;
+// 			}
+// 		}
+// 	}
+// 	if (pos < rsize) {
+// 		for (unsigned i = 0; i < rsize; ++i) {
+// 			_rows2.push_back(tmp[i]);
+// 		}
+// 	}
+
+// 	// closing rowBegin for the sake of for-loops
+// 	_rowBegin.push_back(_rows2.size());
+// }
 
 void SMatrix::includeMap(map<unsigned, vector<unsigned> > &rows) {
 	_rowCount = rows.size();
@@ -275,7 +311,7 @@ bool SMatrix::rowNull(unsigned int i) {
 	return true;
 }
 
-unsigned SMatrix::findRow(const unsigned r, const unsigned min, const unsigned max) const {
+unsigned SMatrix::findRow(const unsigned r, const unsigned min, const unsigned max) {
 	// cout << "find " << r << ":" << min << ":" << max << endl;
 	if (max >= min) {
 		// cout << "here" << endl;
@@ -322,3 +358,53 @@ void SMatrix::find2(const unsigned a) {
 // 		default: break;
 // 	}
 // }
+
+bm::bvector<> SMatrix::multiplyMe(const bm::bvector<> &v) {
+        bm::bvector<> result(_max);
+        result.reset();
+        if (v.none())
+            return result;
+        switch (MODE) {
+            case IMPORT: {
+                for (auto &r : (*_rows)) {
+                    if (v.test(r.first)) {
+                        for (unsigned i : r.second) {
+                            result.set(i);
+                        }
+                    }
+                }
+                break;
+            }
+            case LOAD: {
+                unsigned i = v.get_first();
+                do {
+                    unsigned p = findRow(i);
+                    if (p != _rowNums.size()) { // row found
+                        for (unsigned j = _rowBegin[p]; j < _rowBegin[p+1]; ++j) {
+                            // cout << "trying to insert " << j << endl;
+                            result.set(_rows2[j]);
+                        } 
+                    }
+                } while (i = v.get_next(i));
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+        return result;
+    }
+
+void SMatrix::degreeDistribution(std::ostream &os) {
+    map<unsigned,unsigned> freq;
+    for (unsigned i = 0; i < _rowNums.size(); ++i) {
+        freq[_rowBegin[i+1]-_rowBegin[i]] = 0;
+    }
+    for (unsigned i = 0; i < _rowNums.size(); ++i) {
+        ++freq[_rowBegin[i+1]-_rowBegin[i]];
+    }
+    for (auto &f: freq) {
+        os << "," << f.first << ":" << f.second;
+    }
+}
+

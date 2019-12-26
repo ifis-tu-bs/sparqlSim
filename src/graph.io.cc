@@ -18,7 +18,7 @@ using namespace std;
 extern Reporter Karla;
 
 /* helper functions */
-static unsigned char* serialize_bvector(bm::serializer<bm::bvector<> >& bvs, 
+static unsigned char* serialize_bvector(bm::serializer<bm::bvector<> >& bvs,
                                  bm::bvector<>& bv)
 {
     // It is reccomended to optimize vector before serialization.
@@ -77,12 +77,12 @@ std::ostream & operator<<(std::ostream &os, SMatrix &a) {
 std::ostream & operator<<(std::ostream &os, const bm::bvector<> &a) {
 	// os << "(" << a._max << ")";
 	os << "[";
-	
+
 	unsigned int pos = a.get_first();
 	if (pos == 0 && !a.test(pos)) {
 		for (unsigned int i = 0; i < 7; ++i) {
 		// for (unsigned int i = 0; i < a.size(); ++i) {
-			os << " 0"; 
+			os << " 0";
 		}
 		os << " ]";
 		return os;
@@ -136,10 +136,26 @@ ostream & operator<<(ostream &os, QGSimulation &sim) {
 	return os;
 }
 
-void Graph::report(ostream &os) const {
+void Graph::report(ostream &os, const bool full) {
 	os << "      |V| = " << Vsize() << endl;
 	os << " |\\Sigma| = " << _Sigma.size() << endl;
 	os << "      |E| = " << Esize() << endl;
+
+	if (full) {
+		os << endl
+		   << "  Max Deg = " << _maxDegree << endl
+		   << "    s: " << getNodeName(_maxNode) << endl
+		   << "    p: " << getLabel(_maxLabel).str() << endl;
+		os << " Mean Deg = " << _meanDegree << endl;
+
+		for (Label *l: _Sigma) {
+			os << endl << l->str() << ","
+				<< l->aT().colNum() << ","
+				<< l->a().colNum();
+			l->a().degreeDistribution(os);
+		}
+	}
+	os << endl;
 }
 
 /*
@@ -216,10 +232,10 @@ void Graph::load(const string &dir) {
 
 	// cout << "prefix" << endl;
 
-	
+
 	// maximal number for progress bar
 	unsigned N = stoi(config["nodenum"]);
-	
+
 	// loading the nodes
 	f.open(config["prefix"]+config["nodes"]);
 	if (!checkStream(config["prefix"]+config["nodes"],f)) {
@@ -248,7 +264,7 @@ void Graph::load(const string &dir) {
 	}
 	while (getline(f,line)) {
 		h = strHash(line);
-		assert(_RSigma.find(h) == _RSigma.end());
+		// assert(_RSigma.find(h) == _RSigma.end());
 		_RSigma[h] = _Sigma.size();
 		_Sigma.push_back(new Label(_nodenum, line));
 		_Sigma.back()->a().loadMode();
@@ -263,14 +279,13 @@ void Graph::load(const string &dir) {
 
 	// loading adjacency matrices
 	f.open(config["prefix"]+config["matrices"]);
-	
+
 	unsigned last, next;
 	unsigned numrows;
 	unsigned p = 0;
 	while (getline(f,line)) {
 		next = line.find(':');
 
-		
 		numrows = stoi(line.substr(next+1));
 		while (numrows--) {
 			getline(f,line);
@@ -286,8 +301,56 @@ void Graph::load(const string &dir) {
 
 	f.close();
 
-	NEIGHBORS.optimize();
+	// NEIGHBORS.optimize();
 }
+
+void Graph::loadRow(const unsigned label, const string &line) {
+	static unsigned nodes = 1;
+
+	string row, size, p;
+	unsigned last, next;
+	last = 0;
+
+	// read row
+	next = line.find(':');
+	row = line.substr(last, next);
+	last = next+1;
+	// read size
+	next = line.find(':', last);
+	size = line.substr(last, next-last);
+	last = next+1;
+
+	unsigned rnum = stoi(row);
+	unsigned rsize = stoi(size);
+	unsigned cnum;
+
+	updateDegree(rnum,rsize,label,nodes++);
+
+	for (unsigned i = 0; i < rsize-1; ++i) {
+		next = line.find(':',last);
+
+		cnum = stoi(line.substr(last,next-last));
+		_Sigma[label]->set2(rnum, cnum);
+		addNeighbors(rnum,cnum);
+
+		last = next+1;
+	}
+
+	cnum = stoi(line.substr(last,next-last));
+	_Sigma[label]->set2(rnum, cnum); // setting final column
+	// addNeighbors(rnum,cnum);
+}
+
+void Graph::updateDegree(const unsigned nod, const unsigned deg, const unsigned lab, const unsigned k) {
+	_meanDegree += (deg - _meanDegree) / k;
+
+	if (deg > _maxDegree) {
+		_maxNode = nod;
+		_maxDegree = deg;
+		_maxLabel = lab;
+	}
+}
+
 
 ostream &operator<<(ostream &os, const map<string, bm::bvector<> > &sim) {
 	const string vDelim = "||";

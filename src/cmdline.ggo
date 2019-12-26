@@ -59,9 +59,21 @@ flag off
 
 option "eval" e
 "specifies evaluation semantics"
-multiple values="DUAL","HHK","MAETAL","MINDUAL","PRUNE","STRONG","CSTRONG" enum
+multiple values="PRUNE","DUAL","HHK","MAETAL","MINDUAL","STRONG","CSTRONG" enum
 default="PRUNE"
 optional
+
+option "bgp" -
+"lets the compiler ignore SPARQL operators"
+flag off
+
+option "no-count" -
+"lets sparqlSim not use the count matrix optimization (for HHK)"
+flag off
+
+option "all-variable" a
+"lets sparqlSim interpret the query with constants to only consist of variables"
+flag off
 
 section "Computation options"
 
@@ -93,6 +105,10 @@ option "threads" t
 "specifies the number of threads"
 int typestr="N" default="1" optional
 
+option "timeout" k
+"kills the individual computation after specified timeout time (in seconds)"
+int typestr="TIME" default="0" optional
+
 section "Output options"
 
 option "output" o
@@ -110,6 +126,10 @@ flag off
 
 option "csv" -
 "enables csv output of statistics"
+flag off
+
+option "full-report" -
+"lets sparqlSim output a full database report"
 flag off
 
 option "verbose" v

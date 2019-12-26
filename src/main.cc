@@ -60,8 +60,8 @@ int main(int argc, char **argv) {
 	\****************************************/
 
 	cmdline_parser(argc,argv,&args_info);
-	if (args_info.threads_arg > 1 && 
-		args_info.output_given && 
+	if (args_info.threads_arg > 1 &&
+		args_info.output_given &&
 		args_info.output_arg != output_arg_FILE) {
 		cerr << "output to streams is not supported" << endl;
 		cerr << "exiting the program..." << endl;
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
 	if (args_info.vldb2019_flag) {
 		args_info.csv_flag = 1;
 		args_info.eval_arg[0] = eval_arg_CSTRONG;
-	}	
+	}
 
 	if (args_info.bounds_given) {
 		string bounds(args_info.bounds_arg);
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
 	}
 
 	// after reading is finished, print db stats
-	db.report(clog);
+	db.report(clog, args_info.full_report_flag);
 
 	// storing before optimization, because it's not tested
 	if (args_info.store_given) {
@@ -155,9 +155,9 @@ int main(int argc, char **argv) {
 	// NOT IMPLEMENTED YET
 	Karla.end("minimize db");
 
-	Karla(clog);
+	// Karla(clog);
 	Karla.report();
-	Karla(verbose);
+	// Karla(verbose);
 
 	for (unsigned int i = 0; i < args_info.input_given; ++i) {
 		files.push_back(args_info.input_arg[i]);
@@ -294,8 +294,8 @@ int main(int argc, char **argv) {
 		// Show current settings
 		// printSettings();
 
-		for (unsigned int i = 0; 
-			i < args_info.iterations_arg || 
+		for (unsigned int i = 0;
+			i < args_info.iterations_arg ||
 			args_info.permute_flag ||
 			i < args_info.eval_given; ++i) {
 
@@ -357,7 +357,8 @@ int main(int argc, char **argv) {
 			cout << endl << " .. no. of results = " << resultsize << endl
 			             << " .. time (in sec.) = " << Karla.getValue("Query Evaluation Time:", fname) << endl << endl;
 
-			if (args_info.eval_arg[MOD] == eval_arg_PRUNE) {
+			//if (args_info.eval_arg[MOD] == eval_arg_PRUNE) {
+			if (args_info.output_given) {
 				Karla.start("Producing Output (post)", fname);
 				sim.output();
 				Karla.end("Producing Output (post)", fname);

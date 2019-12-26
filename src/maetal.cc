@@ -18,7 +18,17 @@ MaEtAl::~MaEtAl() {
 }
 
 unsigned MaEtAl::evaluate(std::ostream &os) {
-	return doMaEtAl();
+	doMaEtAl();
+
+	for (unsigned i = 0; i < _vars.size(); ++i) {
+		// cout << _vars[i]->val() << endl;
+		if (_vars[i]->val().none()) {
+			_reporter.note("# of results", _query, to_string(0));
+			return 0;
+		}
+	}
+	_reporter.note("# of results", _query, to_string(1));
+	return 1;
 }
 
 unsigned int MaEtAl::doMaEtAl() {
@@ -33,13 +43,25 @@ unsigned int MaEtAl::doMaEtAl() {
 			bm::bvector<> &x = _sourceV[i]->getVal();
 			bm::bvector<> &y = _targetV[i]->getVal();
 
-			unsigned r = x.get_first();
-			if (r>0 || x.test(0)) {
+			if (x.any()) {
+				unsigned r = x.get_first();
 				do {
-					if (!_operand[i]->matrix(_dirs[i]).check(r,y)) {
-						x.clear_bit(r);
-						changes = true;
+					bm::bvector<> rr(_max);
+					rr.set(r);
+					rr = _operand[i]->matrix(_dirs[i]).multiplyMe(rr);
+					bool remove = true;
+					if (rr.any()) {
+						unsigned rrr = rr.get_first();
+						do {
+							if (y.test(rrr)) {
+								remove = false;
+								break;
+							}
+						} while (rrr = rr.get_next(rrr));
 					}
+
+					if (remove)
+						x.set(r,false);
 				} while (r = x.get_next(r));
 			}
 

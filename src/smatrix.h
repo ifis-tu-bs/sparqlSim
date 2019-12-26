@@ -61,7 +61,7 @@ public:
 	}
 
 	void compress(unsigned int max) {
-		// std::cout << "compressing max= " << max << std::std::endl; 
+		// std::cout << "compressing max= " << max << std::std::endl;
 		_max = max;
 		_colV.resize(max);
 		_colV.optimize_gap_size();
@@ -155,7 +155,7 @@ public:
 	// 		os << std::endl;
 	// 		os << pair.first << " " << pair.second.size();
 	// 		for (auto &j: pair.second) {
-	// 			os << " " << j;	
+	// 			os << " " << j;
 	// 		}
 	// 	}
 	// }
@@ -191,34 +191,34 @@ public:
 	}
 
 	const unsigned intcount() const {
-		return _count;
+		return _rows2.size();
 	}
 
 	double count() const {
-		return (double) _count;
+		return (double) _rows2.size();
 	}
 
 	unsigned countBits() {
-		return _count;
+		return _rows2.size();
 	}
 
 	double icount() const {
-		return ((double) _count / _colV.count());
+		return ((double) _rows2.size() / _colV.count());
 	}
 
 	// checks if conjunction is non-empty
 	const bool check(unsigned rownum, const bm::bvector<> &reference) {
-		switch (MODE) {
-			case IMPORT: {
-				if (!rowNull(rownum)) {
-					for (unsigned match : (*_rows)[rownum]) {
-						if (reference.test(match))
-							return true;
-					}
-				}
-				break;
-			}
-			case LOAD: {
+		// switch (MODE) {
+		// 	case IMPORT: {
+		// 		if (!rowNull(rownum)) {
+		// 			for (unsigned match : (*_rows)[rownum]) {
+		// 				if (reference.test(match))
+		// 					return true;
+		// 			}
+		// 		}
+		// 		break;
+		// 	}
+			// case LOAD: {
 				unsigned i = findRow(rownum);
 				if (i < _rowNums.size()) {
 					for (unsigned j = _rowBegin[i]; j < _rowBegin[i+1]; ++j) {
@@ -226,44 +226,28 @@ public:
 							return true;
 					}
 				}
-				break;
-			}
-			default: break;
-		}
+		// 		break;
+		// 	}
+		// 	default: break;
+		// }
 
 		return false;
 	}
 
-	bm::bvector<> multiplyMe(const bm::bvector<> &v) {
-		bm::bvector<> result(_max);
-		result.reset();
-		switch (MODE) {
-			case IMPORT: {
-				for (auto &r : (*_rows)) {
-					if (v.test(r.first)) {
-						for (unsigned i : r.second) {
-							result.set(i);
-						}
-					}
-				}
-				break;
-			}
-			case LOAD: {
-				for (unsigned i = 0; i < _rowNums.size(); ++i) {
-					if (!v.test(_rowNums[i]))
-						continue;
-					for (unsigned j = _rowBegin[i]; j < _rowBegin[i+1]; ++j) {
-						result.set(_rows2[j]);
-					}
-				}
-				break;
-			}
-			default: {
-				break;
-			}
-		}
-		return result;
-	}
+    const unsigned checkMult(const unsigned rownum, const bm::bvector<> &reference) {
+        unsigned r = 0;
+
+        unsigned i = findRow(rownum);
+        if (i < _rowNums.size()) {
+            for (unsigned j = _rowBegin[i]; j < _rowBegin[i+1]; ++j) {
+                r += (reference.test(_rows2[j]) ? 1 : 0);
+            }
+        }
+
+        return r;
+    }
+
+	bm::bvector<> multiplyMe(const bm::bvector<> &v);
 
 	static void print(const bm::bvector<> &v) {
 		cerr << "size: " << v.size() << std::endl;
@@ -280,7 +264,7 @@ public:
 	unsigned sizeOf() {
 		unsigned size = sizeof(map<unsigned,vector<unsigned> >);
 		for (auto &e : (*_rows)) {
-			size += sizeof(unsigned) + 
+			size += sizeof(unsigned) +
 					sizeof(vector<unsigned>) +
 					e.second.size()*sizeof(unsigned);
 		}
@@ -291,7 +275,7 @@ public:
 	void storeIn(std::ostream &os);
 
 	/// loads row from stored string format
-	void loadRow(std::string &line);
+	// void loadRow(const std::string &line);
 
 	/// include the data from the given map
 	void includeMap(std::map<unsigned, std::vector<unsigned> > &rows);
@@ -308,6 +292,8 @@ public:
 		}
 	}
 
+    void degreeDistribution(std::ostream &os);
+
 private:
 	// rows of the matrix
 	// map<unsigned, Row> .. Row=vector<unsigned>
@@ -317,6 +303,8 @@ private:
 	std::vector<unsigned> _rowNums;
 	// unsigned* _rowBegin;
 	std::vector<unsigned> _rowBegin;
+	// rowSize
+	std::vector<unsigned short> _rowSize;
 	// unsigned* _rows2;
 	std::vector<unsigned> _rows2;
 
@@ -339,11 +327,19 @@ private:
 	}
 	bool rowNull(unsigned int i);
 
-	unsigned findRow(const unsigned r) const {
-		return findRow(r, 0, _rowNums.size()-1);
+    unsigned _lastHit = 0;
+
+	unsigned findRow(const unsigned r) {
+        unsigned result = (_rowNums[_lastHit] <= r ?
+            findRow(r, _lastHit, _rowNums.size()-1) : findRow(r, 0, _rowNums.size()-1));
+
+        if (result < _rowNums.size())
+            _lastHit = result;
+
+		return result;
 	}
 
-	unsigned findRow(const unsigned r, const unsigned min, const unsigned max) const;
+	unsigned findRow(const unsigned r, const unsigned min, const unsigned max);
 
 	friend std::ostream & operator<<(std::ostream &os, SMatrix &a);
 

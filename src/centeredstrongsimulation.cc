@@ -1,3 +1,5 @@
+#ifdef MULTITHREADING
+
 #include "centeredstrongsimulation.h"
 #include "variable.h"
 
@@ -42,7 +44,7 @@ CenteredStrongSimulation::~CenteredStrongSimulation() {
 }
 
 unsigned CenteredStrongSimulation::evaluate(std::ostream &os) {
-			
+
 	_reporter.start("fixpoint", _query);
 	unsigned iter = fixpoint(3, os);
 	_reporter.end("fixpoint", _query);
@@ -57,7 +59,7 @@ unsigned CenteredStrongSimulation::evaluate(std::ostream &os) {
 	}
 
 	vector<bm::bvector<> > balls, borders;
-	
+
 	int rad = radius();
 
 	bm::bvector<> centers(max());
@@ -95,7 +97,7 @@ std::map<std::string, bm::bvector<> > &CenteredStrongSimulation::simulation() {
 //StrongSim
 std::set<std::string> CenteredStrongSimulation::getPartner(std::string a){
 	std::set<std::string> Set;
-	
+
 	for (auto &i: _order) {
 		//cout << "eq: " << i << endl;
 		if(_targetV[i]->getId() == a){
@@ -106,14 +108,14 @@ std::set<std::string> CenteredStrongSimulation::getPartner(std::string a){
 			Set.insert(_targetV[i]->getId());
 			//cout << "Parent of " << a << ": " << _targetV[i]->getId() << endl;
 		}
-		
+
 	}
 	return Set;
 }
 
 std::set<std::string> CenteredStrongSimulation::getPartner(std::string a, std::set<std::string> Old){
 	std::set<std::string> Set;
-	
+
 	for (auto &i: _order) {
 		//cout << "eq: " << i << endl;
 		if(_targetV[i]->getId() == a && Old.find(_sourceV[i]->getId()) == Old.end() ){
@@ -124,14 +126,14 @@ std::set<std::string> CenteredStrongSimulation::getPartner(std::string a, std::s
 			Set.insert(_targetV[i]->getId());
 			//cout << "Parent of " << a << ": " << _targetV[i]->getId() << endl;
 		}
-		
+
 	}
 	return Set;
 }
 
 std::set<SMatrix *> CenteredStrongSimulation::getEdges(std::string a, std::set<std::string> Old){
 	std::set<SMatrix *> Set;
-	
+
 	for (auto &i: _order) {
 		//cout << "eq: " << i << endl;
 		//cout << _operand[i]  << endl;
@@ -143,7 +145,7 @@ std::set<SMatrix *> CenteredStrongSimulation::getEdges(std::string a, std::set<s
 			Set.insert(_operand[i]->matrix_p(_dirs[i]));
 			//cout << "Parent of " << a << ": " << _targetV[i]->getId() << endl;
 		}
-		
+
 	}
 	return Set;
 }
@@ -374,7 +376,7 @@ std::set<std::string> CenteredStrongSimulation::center(std::vector<std::string> 
 
 std::string CenteredStrongSimulation::output(string delimiter) {
 	simulation();
-	std::string out;	
+	std::string out;
 	std::string split = "#|#";
 	for (auto &pair: _sim) {
 		std::string tmp;
@@ -385,7 +387,7 @@ std::string CenteredStrongSimulation::output(string delimiter) {
 		}
 		do {
 			tmp += _db->getNodeName(v) + "" + split;
-			
+
 		} while ((v = pair.second.get_next(v)) != 0);
 		tmp = tmp.substr(0, tmp.size()-split.length());
 		out += tmp + delimiter;
@@ -419,7 +421,7 @@ void CenteredStrongSimulation::setOutput(const string &filename) {
 void CenteredStrongSimulation::statistics(const std::string &filename) {
 	ofstream stats;
 	stats.open(filename+".statistics", ofstream::app);
-	if (!checkStream(filename+".statistics", stats)) 
+	if (!checkStream(filename+".statistics", stats))
 		return;
 
 	// take Karla's info
@@ -441,7 +443,7 @@ void CenteredStrongSimulation::csv(const std::string &filename, const char delim
 	_reporter.note("filename", _query, filename);
 
 	csv_f.open(filename+".centered.csv", ofstream::app);
-	if (!checkStream(filename+".centered.csv", csv_f)) 
+	if (!checkStream(filename+".centered.csv", csv_f))
 		return;
 
 	overtakeKarla(filename);
@@ -454,14 +456,14 @@ void CenteredStrongSimulation::csv(std::ostream &os, const char delim) {
 	os << "<<<";
 
 	os << delim << _reporter.getValue("filename", _query);
-	
+
 	os << delim << _reporter.getValue("compilation time", _query);
 	// os << delim << _reporter.getValue("fixpoint", _query);
 	// os << delim << _reporter.getValue("# of iterations", _query);
 	os << delim << order();
 	os << delim << _reporter.getValue("evaluation time", _query);
 	os << delim << _reporter.getValue("# of results", _query);
-	
+
 	os << delim	<< _query;
 	os << delim << _triplesInQuery;
 	os << delim << _optsInQuery;
@@ -534,7 +536,7 @@ void CenteredStrongSimulation::csv(std::ostream &os, const char delim) {
 			cout << "Out Target: " << _targetV[i]->getVal() << endl;
 			_stable[i] = true;
 
-			if (_targetV[i]->isEmpty() && 
+			if (_targetV[i]->isEmpty() &&
 				_targetV[i]->isMandatory()) {
 				_empty = true;
 				return iter;
@@ -565,3 +567,5 @@ const int CenteredStrongSimulation::radius() {
 	}
 	return diameter() / 2;
 }
+
+#endif /* MULTITHREADING */

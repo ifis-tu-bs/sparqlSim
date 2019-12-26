@@ -27,20 +27,12 @@ Label::~Label() {
 }
 
 void Label::set(unsigned int ro, unsigned int co) {
-	// cout << "here" << endl;
-	// cout << _a << " " << _aT << endl;
 	_a->set(ro,co);
 	_aT->set(co,ro);
 }
 
 void Label::set2(unsigned int ro, unsigned int co) {
-	// cout << "here" << endl;
-	// cout << _a << " " << _aT << endl;
 	_a->set2(ro,co);
-	// _aT->set2(co,ro, final);
-	// if (final) {
-	// 	setAT(new SMatrix(*_a, true));
-	// }
 }
 
 void Label::makeFinal() {

@@ -1,3 +1,5 @@
+#ifdef MULTITHREADING
+
 #ifndef CENTEREDSTRONGSIMULATION_H
 #define CENTEREDSTRONGSIMULATION_H
 
@@ -63,7 +65,7 @@ public:
 	std::vector<std::string> queryNodeSet();
 	std::string output(std::string delimiter);
 	std::string var();
-	//unsigned int fixspointY();	
+	//unsigned int fixspointY();
 	void setFullyUnstable();
 
 	const int radius();
@@ -79,3 +81,5 @@ private:
 };
 
 #endif /* CENTEREDSTRONGSIMULATION_H */
+
+#endif /* MULTITHREADING */

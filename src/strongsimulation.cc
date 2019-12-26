@@ -1,3 +1,5 @@
+#ifdef MULTITHREADING
+
 #include "strongsimulation.h"
 #include "simulation.h"
 #include "variable.h"
@@ -35,7 +37,7 @@ StrongSimulation::StrongSimulation(StrongSimulation &s) :
 
 StrongSimulation::StrongSimulation(StrongSimulation &s, bm::bvector<> &ball, bm::bvector<> &border) :
 	QGSimulation(s)
-{	
+{
 	for (Variable *v : _vars) {
 		v->join(ball);
 		bm::bvector<> tmp = v->val() & border;
@@ -59,16 +61,16 @@ StrongSimulation::~StrongSimulation() {
 // }
 
 unsigned StrongSimulation::evaluate(std::ostream &os) {
-	
+
 	if (!diameter()) {
 		_reporter.note("# of results",_query,to_string(0));
 		return 0;
 	}
 	if (diameter() < 0) {
 		// reporter.note("# of results",_query,to_string(0));
-		cerr << "error in eval(" 
-			<< _query 
-			<< "): query with infinite diameter" 
+		cerr << "error in eval("
+			<< _query
+			<< "): query with infinite diameter"
 			<< endl;
 		return 0;
 	}
@@ -105,8 +107,8 @@ const unsigned StrongSimulation::computeAllStrong(bm::bvector<> &balls, const un
 	cout << "#balls: " << balls.count() << " (r=" << radius << ")" << endl;
 
 	unsigned result = 0;
-	unsigned threadsNum = 
-		(args_info.threads_arg < balls.size() ? 
+	unsigned threadsNum =
+		(args_info.threads_arg < balls.size() ?
 			args_info.threads_arg : balls.size()) - 1;
 	_reporter.note("thread number", _query, to_string(threadsNum+1));
 
@@ -115,7 +117,7 @@ const unsigned StrongSimulation::computeAllStrong(bm::bvector<> &balls, const un
 	// vector<bm::bvector<> > *N_copies;
 	vector<StrongSimulation *> sim_copies;
 	vector<bm::bvector<> > allballs;
-	
+
 	if (threadsNum) {
 		threads = new thread[threadsNum];
 		res = new unsigned[threadsNum];
@@ -148,7 +150,7 @@ const unsigned StrongSimulation::computeAllStrong(bm::bvector<> &balls, const un
 
 		allballs[i] = bm::bvector<>(max());
 		unsigned j = 0;
-		for (unsigned j = 0; j < workload && 
+		for (unsigned j = 0; j < workload &&
 			(last = balls.extract_next(last)); ++j) {
 			// cout << i << ":" << last << endl;
 			allballs[i].set(last);
@@ -164,7 +166,7 @@ const unsigned StrongSimulation::computeAllStrong(bm::bvector<> &balls, const un
 	// cout << balls.count() << endl;
 
 	// _db->neighbors().find2(27225568);
-	
+
 	if (balls.any()) {
 		result += strongsimulation0(threadsNum, balls, _db->neighbors(), radius, *this);
 	}
@@ -183,10 +185,10 @@ const unsigned StrongSimulation::computeAllStrong(bm::bvector<> &balls, const un
 	return result;
 }
 
-void strongsimulation(const unsigned tid, bm::bvector<> &balls, 
-		SMatrix &N, 
+void strongsimulation(const unsigned tid, bm::bvector<> &balls,
+		SMatrix &N,
 		const unsigned radius, unsigned &res, StrongSimulation &sim) {
-	
+
 	// printTime();
 	unsigned result = strongsimulation0(tid, balls, N, radius, sim);
 	// cout << result << endl;
@@ -194,7 +196,7 @@ void strongsimulation(const unsigned tid, bm::bvector<> &balls,
 }
 
 const unsigned strongsimulation0(const unsigned tid, bm::bvector<> &balls,
-	SMatrix &N, const unsigned radius, 
+	SMatrix &N, const unsigned radius,
 	StrongSimulation &sim) {
 
 	StrongSimulation &tim = *(new StrongSimulation(sim));
@@ -211,7 +213,7 @@ const unsigned strongsimulation0(const unsigned tid, bm::bvector<> &balls,
 
 	// unsigned ballnum = balls.count();
 	if (sim._fileout) {
-		((ofstream *)sim._out)->open(sim._filename);		
+		((ofstream *)sim._out)->open(sim._filename);
 	}
 
 	// unsigned current = candidates.get_first();
@@ -309,7 +311,7 @@ const unsigned strongsimulation0(const unsigned tid, bm::bvector<> &balls,
 // 		res[i] = 0;
 // 		// tim.push_back(new StrongSimulation(*this));
 // 	// }
-	
+
 // 	// _reporter.start("computing simulations",_query);
 // 	// for (unsigned i = 0; i < threadsNum; ++i) {
 // 		threads[i] = thread(strongsimulation0, i, i * workload, (i+1)*workload, ref(balls), ref(borders), ref(*this), ref(res[i]));
@@ -521,7 +523,7 @@ const int StrongSimulation::diameter() {
 //StrongSim
 std::set<std::string> StrongSimulation::getPartner(std::string a){
 	std::set<std::string> Set;
-	
+
 	for (auto &i: _order) {
 		//cout << "eq: " << i << endl;
 		if(_targetV[i]->getId() == a){
@@ -532,14 +534,14 @@ std::set<std::string> StrongSimulation::getPartner(std::string a){
 			Set.insert(_targetV[i]->getId());
 			//cout << "Parent of " << a << ": " << _targetV[i]->getId() << endl;
 		}
-		
+
 	}
 	return Set;
 }
 
 std::set<std::string> StrongSimulation::getPartner(std::string a, std::set<std::string> Old){
 	std::set<std::string> Set;
-	
+
 	for (auto &i: _order) {
 		//cout << "eq: " << i << endl;
 		if(_targetV[i]->getId() == a && Old.find(_sourceV[i]->getId()) == Old.end() ){
@@ -550,14 +552,14 @@ std::set<std::string> StrongSimulation::getPartner(std::string a, std::set<std::
 			Set.insert(_targetV[i]->getId());
 			//cout << "Parent of " << a << ": " << _targetV[i]->getId() << endl;
 		}
-		
+
 	}
 	return Set;
 }
 
 std::set<SMatrix *> StrongSimulation::getEdges(std::string a, std::set<std::string> Old){
 	std::set<SMatrix *> Set;
-	
+
 	for (auto &i: _order) {
 		//cout << "eq: " << i << endl;
 		//cout << _operand[i]  << endl;
@@ -569,7 +571,7 @@ std::set<SMatrix *> StrongSimulation::getEdges(std::string a, std::set<std::stri
 			Set.insert(_operand[i]->matrix_p(_dirs[i]));
 			//cout << "Parent of " << a << ": " << _targetV[i]->getId() << endl;
 		}
-		
+
 	}
 	return Set;
 }
@@ -800,7 +802,7 @@ std::set<std::string> StrongSimulation::center(std::vector<std::string> nodes,un
 
 std::string StrongSimulation::output(string delimiter) {
 	_sim = simulation();
-	std::string out;	
+	std::string out;
 	std::string split = " #|# ";
 	for (auto &pair: _sim) {
 		std::string tmp;
@@ -811,7 +813,7 @@ std::string StrongSimulation::output(string delimiter) {
 		}
 		do {
 			tmp += _db->getNodeName(v) + "" + split;
-			
+
 		} while ((v = pair.second.get_next(v)) != 0);
 		tmp = tmp.substr(0, tmp.size()-split.length());
 		out += tmp + delimiter;
@@ -876,7 +878,7 @@ void StrongSimulation::setFullyUnstable() {
 // 			cout << "Out Target: " << _targetV[i]->getVal() << endl;
 // 			_stable[i] = true;
 
-// 			if (_targetV[i]->isEmpty() && 
+// 			if (_targetV[i]->isEmpty() &&
 // 				_targetV[i]->isMandatory()) {
 // 				_empty = true;
 // 				return iter;
@@ -907,7 +909,7 @@ void StrongSimulation::setOutput(const string &filename) {
 void StrongSimulation::statistics(const std::string &filename) {
 	ofstream stats;
 	stats.open(filename+".statistics", ofstream::app);
-	if (!checkStream(filename+".statistics", stats)) 
+	if (!checkStream(filename+".statistics", stats))
 		return;
 
 	// take Karla's info
@@ -929,7 +931,7 @@ void StrongSimulation::csv(const std::string &filename, const char delim) {
 	_reporter.note("filename", _query, filename);
 
 	csv_f.open(filename+".strong.csv", ofstream::app);
-	if (!checkStream(filename+".strong.csv", csv_f)) 
+	if (!checkStream(filename+".strong.csv", csv_f))
 		return;
 
 	overtakeKarla(filename);
@@ -942,14 +944,14 @@ void StrongSimulation::csv(std::ostream &os, const char delim) {
 	os << "<<<";
 
 	os << delim << _reporter.getValue("filename", _query);
-	
+
 	os << delim << _reporter.getValue("compilation time", _query);
 	os << delim << _reporter.getValue("fixpoint", _query);
 	os << delim << _reporter.getValue("# of iterations", _query);
 	os << delim << order();
 	os << delim << _reporter.getValue("evaluation time", _query);
 	os << delim << _reporter.getValue("# of results", _query);
-	
+
 	os << delim	<< _query;
 	os << delim << _triplesInQuery;
 	os << delim << _optsInQuery;
@@ -992,3 +994,5 @@ void StrongSimulation::set(StrongSimulation &s, bm::bvector<> &ball, bm::bvector
 		// assert(_vars[i]->val().count());
 	}
 }
+
+#endif /* MULTITHREADING */
